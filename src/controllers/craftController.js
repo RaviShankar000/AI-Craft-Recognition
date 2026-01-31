@@ -392,6 +392,82 @@ const voiceSearchCrafts = async (req, res) => {
 };
 
 /**
+ * Get popular crafts based on views
+ * @route GET /api/crafts/popular
+ * @access Private
+ */
+const getPopularCrafts = async (req, res) => {
+  try {
+    const { limit = 10, days = 30 } = req.query;
+
+    // Calculate date range
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - parseInt(days));
+
+    // Get popular crafts from analytics
+    const popularCrafts = await Analytics.aggregate([
+      {
+        $match: {
+          eventType: 'craft_view',
+          craft: { $exists: true },
+          createdAt: { $gte: startDate },
+        },
+      },
+      {
+        $group: {
+          _id: '$craft',
+          views: { $sum: 1 },
+          uniqueUsers: { $addToSet: '$user' },
+        },
+      },
+      {
+        $project: {
+          craft: '$_id',
+          views: 1,
+          uniqueUserCount: { $size: '$uniqueUsers' },
+        },
+      },
+      { $sort: { views: -1 } },
+      { $limit: parseInt(limit) },
+    ]);
+
+    // Populate craft details
+    const craftIds = popularCrafts.map(item => item.craft);
+    const crafts = await Craft.find({ _id: { $in: craftIds } })
+      .populate('user', 'name')
+      .select('-__v');
+
+    // Merge analytics data with craft details
+    const craftsMap = new Map(crafts.map(craft => [craft._id.toString(), craft]));
+    const result = popularCrafts
+      .map(item => {
+        const craft = craftsMap.get(item.craft.toString());
+        if (!craft) return null;
+        return {
+          ...craft.toObject(),
+          analytics: {
+            views: item.views,
+            uniqueUsers: item.uniqueUserCount,
+          },
+        };
+      })
+      .filter(item => item !== null);
+
+    res.status(200).json({
+      success: true,
+      count: result.length,
+      period: `Last ${days} days`,
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Helper: Get device type from user agent
  */
 const getDeviceType = userAgent => {
@@ -423,4 +499,5 @@ module.exports = {
   updateCraft,
   deleteCraft,
   voiceSearchCrafts,
+  getPopularCrafts,
 };
