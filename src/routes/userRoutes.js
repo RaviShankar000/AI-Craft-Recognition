@@ -3,6 +3,11 @@ const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 
 /**
+ * PROTECTED ROUTES - USER ACCESS
+ * Authentication required
+ */
+
+/**
  * Get current user profile
  * @route GET /api/users/me
  * @access Private
@@ -67,6 +72,11 @@ router.put('/me', protect, async (req, res) => {
     });
   }
 });
+
+/**
+ * PROTECTED ROUTES - ADMIN ONLY
+ * Authentication + Admin role required
+ */
 
 /**
  * Get all users (Admin only)

@@ -10,17 +10,27 @@ const {
   syncCart,
 } = require('../controllers/cartController');
 
-// All cart routes are protected
-router.use(protect);
+/**
+ * PROTECTED ROUTES
+ * All cart routes require authentication
+ */
 
 // Cart sync route
-router.post('/sync', syncCart);
+router.post('/sync', protect, syncCart);
 
-// Main cart routes
-router.route('/').get(getCart).delete(clearCart);
+// Get user cart
+router.get('/', protect, getCart);
 
-// Cart items routes
-router.post('/items', addToCart);
-router.route('/items/:productId').put(updateCartItem).delete(removeFromCart);
+// Clear cart
+router.delete('/', protect, clearCart);
+
+// Add item to cart
+router.post('/items', protect, addToCart);
+
+// Update cart item
+router.put('/items/:productId', protect, updateCartItem);
+
+// Remove item from cart
+router.delete('/items/:productId', protect, removeFromCart);
 
 module.exports = router;

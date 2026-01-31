@@ -21,10 +21,20 @@ const upload = multer({
   },
 });
 
-// Public routes
+/**
+ * PUBLIC ROUTES
+ * No authentication required
+ */
+
+// Check AI service health
 router.get('/health', checkHealth);
 
-// Protected routes
+/**
+ * PROTECTED ROUTES
+ * Authentication required
+ */
+
+// Predict craft type from image
 router.post('/predict', protect, upload.single('image'), predictCraft);
 
 module.exports = router;

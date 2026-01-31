@@ -12,23 +12,38 @@ const {
   deleteOrder,
 } = require('../controllers/orderController');
 
-// All order routes require authentication
-router.use(protect);
+/**
+ * PROTECTED ROUTES - USER ACCESS
+ * Authentication required
+ */
 
-// Admin routes - must come before other routes
-router.get('/admin/all', authorize('admin'), getAllOrdersAdmin);
+// Get user orders
+router.get('/', protect, getAllOrders);
 
-// User order routes
-router.get('/', getAllOrders);
-router.get('/stats', getOrderStats);
-router.get('/track/:orderNumber', trackOrder);
-router.get('/:id', getOrderById);
+// Get order statistics
+router.get('/stats', protect, getOrderStats);
 
-// Order cancellation
-router.post('/:id/cancel', cancelOrder);
+// Track order by number
+router.get('/track/:orderNumber', protect, trackOrder);
 
-// Admin-only order management
-router.patch('/:id/status', authorize('admin'), updateOrderStatus);
-router.delete('/:id', authorize('admin'), deleteOrder);
+// Get specific order
+router.get('/:id', protect, getOrderById);
+
+// Cancel order
+router.post('/:id/cancel', protect, cancelOrder);
+
+/**
+ * PROTECTED ROUTES - ADMIN ONLY
+ * Authentication + Admin role required
+ */
+
+// Get all orders (admin view)
+router.get('/admin/all', protect, authorize('admin'), getAllOrdersAdmin);
+
+// Update order status
+router.patch('/:id/status', protect, authorize('admin'), updateOrderStatus);
+
+// Delete order
+router.delete('/:id', protect, authorize('admin'), deleteOrder);
 
 module.exports = router;

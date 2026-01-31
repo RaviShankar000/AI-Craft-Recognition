@@ -11,16 +11,35 @@ const {
   getPopularCrafts,
 } = require('../controllers/craftController');
 
-// All craft routes are protected
-router.use(protect);
+/**
+ * PUBLIC ROUTES
+ * No authentication required
+ */
 
-// Special routes (must be before /:id route)
-router.get('/voice-search', voiceSearchCrafts);
+// Get popular crafts
 router.get('/popular', getPopularCrafts);
 
-// Craft routes
-router.route('/').get(getAllCrafts).post(createCraft);
+// Get all crafts
+router.get('/', getAllCrafts);
 
-router.route('/:id').get(getCraftById).put(updateCraft).delete(deleteCraft);
+// Get craft by ID
+router.get('/:id', getCraftById);
+
+/**
+ * PROTECTED ROUTES
+ * Authentication required
+ */
+
+// Voice search crafts
+router.get('/voice-search', protect, voiceSearchCrafts);
+
+// Create new craft
+router.post('/', protect, createCraft);
+
+// Update craft
+router.put('/:id', protect, updateCraft);
+
+// Delete craft
+router.delete('/:id', protect, deleteCraft);
 
 module.exports = router;

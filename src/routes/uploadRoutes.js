@@ -4,6 +4,11 @@ const { protect } = require('../middleware/auth');
 const upload = require('../config/multer');
 
 /**
+ * PROTECTED ROUTES
+ * All upload routes require authentication
+ */
+
+/**
  * Upload single image
  * @route POST /api/upload/single
  * @access Private

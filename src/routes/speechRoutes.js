@@ -30,10 +30,20 @@ const upload = multer({
   },
 });
 
-// Public routes
+/**
+ * PUBLIC ROUTES
+ * No authentication required
+ */
+
+// Get speech service status
 router.get('/status', getStatus);
 
-// Protected routes
+/**
+ * PROTECTED ROUTES
+ * Authentication required
+ */
+
+// Transcribe audio to text
 router.post('/transcribe', protect, upload.single('audio'), transcribeAudio);
 
 module.exports = router;

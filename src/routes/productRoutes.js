@@ -11,19 +11,35 @@ const {
   getProductsByCraft,
 } = require('../controllers/productController');
 
-// All product routes are protected
-router.use(protect);
+/**
+ * PUBLIC ROUTES
+ * No authentication required
+ */
 
 // Get products by craft (must be before /:id route)
 router.get('/craft/:craftId', getProductsByCraft);
 
-// Main product routes
-router.route('/').get(getAllProducts).post(createProduct);
+// Get all products
+router.get('/', getAllProducts);
 
-// Individual product routes
-router.route('/:id').get(getProductById).put(updateProduct).delete(deleteProduct);
+// Get product by ID
+router.get('/:id', getProductById);
+
+/**
+ * PROTECTED ROUTES
+ * Authentication required
+ */
+
+// Create new product
+router.post('/', protect, createProduct);
+
+// Update product
+router.put('/:id', protect, updateProduct);
+
+// Delete product
+router.delete('/:id', protect, deleteProduct);
 
 // Stock management route
-router.patch('/:id/stock', updateProductStock);
+router.patch('/:id/stock', protect, updateProductStock);
 
 module.exports = router;

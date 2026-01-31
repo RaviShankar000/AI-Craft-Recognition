@@ -7,7 +7,10 @@ const {
   getStatus,
 } = require('../controllers/chatbotController');
 
-// All chatbot routes are public (no authentication required)
+/**
+ * PUBLIC ROUTES
+ * All chatbot routes are public - no authentication required
+ */
 
 /**
  * @route   POST /api/chatbot/message

@@ -8,13 +8,21 @@ const {
   applyDiscount,
 } = require('../controllers/checkoutController');
 
-// All checkout routes are protected
-router.use(protect);
+/**
+ * PROTECTED ROUTES
+ * All checkout routes require authentication
+ */
 
-// Checkout routes
-router.get('/summary', getCheckoutSummary);
-router.post('/validate', validateCheckout);
-router.post('/apply-discount', applyDiscount);
-router.post('/', processCheckout);
+// Get checkout summary
+router.get('/summary', protect, getCheckoutSummary);
+
+// Validate checkout
+router.post('/validate', protect, validateCheckout);
+
+// Apply discount code
+router.post('/apply-discount', protect, applyDiscount);
+
+// Process checkout
+router.post('/', protect, processCheckout);
 
 module.exports = router;
