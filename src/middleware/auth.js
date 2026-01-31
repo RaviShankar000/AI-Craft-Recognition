@@ -44,8 +44,15 @@ const protect = async (req, res, next) => {
         });
       }
 
-      // Attach user to request object
-      req.user = user;
+      // Attach user information to request object for downstream use
+      req.user = {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: decoded.role || user.role, // Use role from JWT token, fallback to user model
+        isActive: user.isActive,
+      };
+      
       next();
     } catch (error) {
       // Handle specific token errors
