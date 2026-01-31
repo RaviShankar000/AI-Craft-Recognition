@@ -1,4 +1,5 @@
 const Craft = require('../models/Craft');
+const Analytics = require('../models/Analytics');
 const { sanitizeTranscript } = require('../utils/sanitizer');
 
 /**
@@ -135,6 +136,21 @@ const getCraftById = async (req, res) => {
     if (craft.user._id.toString() !== req.user._id.toString()) {
       craft.viewCount += 1;
       await craft.save();
+
+      // Track craft view in analytics
+      try {
+        await Analytics.trackCraftView({
+          userId: req.user._id,
+          sessionId: req.headers['x-session-id'],
+          craftId: craft._id,
+          deviceType: getDeviceType(req.headers['user-agent']),
+          browser: getBrowser(req.headers['user-agent']),
+          ipAddress: req.ip || req.connection.remoteAddress,
+        });
+      } catch (analyticsError) {
+        // Don't fail the request if analytics fails
+        console.error('Analytics tracking failed:', analyticsError.message);
+      }
     }
 
     res.status(200).json({
@@ -346,6 +362,31 @@ const voiceSearchCrafts = async (req, res) => {
       error: error.message,
     });
   }
+};
+
+/**
+ * Helper: Get device type from user agent
+ */
+const getDeviceType = userAgent => {
+  if (!userAgent) return 'unknown';
+  const ua = userAgent.toLowerCase();
+  if (/(tablet|ipad|playbook|silk)|(android(?!.*mobile))/i.test(ua)) return 'tablet';
+  if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile/i.test(ua)) return 'mobile';
+  return 'desktop';
+};
+
+/**
+ * Helper: Get browser from user agent
+ */
+const getBrowser = userAgent => {
+  if (!userAgent) return 'unknown';
+  const ua = userAgent.toLowerCase();
+  if (ua.includes('firefox')) return 'Firefox';
+  if (ua.includes('chrome') && !ua.includes('edge')) return 'Chrome';
+  if (ua.includes('safari') && !ua.includes('chrome')) return 'Safari';
+  if (ua.includes('edge')) return 'Edge';
+  if (ua.includes('opera') || ua.includes('opr')) return 'Opera';
+  return 'Other';
 };
 
 module.exports = {
