@@ -2,15 +2,18 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const connectDB = require('./src/config/database');
+const config = require('./src/config/env');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: config.corsOrigin,
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -25,8 +28,9 @@ app.get('/health', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(config.port, () => {
+  console.log(`Server is running on port ${config.port}`);
+  console.log(`Environment: ${config.nodeEnv}`);
 });
 
 module.exports = app;
