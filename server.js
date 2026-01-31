@@ -7,7 +7,9 @@ const config = require('./src/config/env');
 const app = express();
 
 // Connect to MongoDB
-connectDB();
+connectDB().catch(err => {
+  console.error('Failed to initialize database connection:', err);
+});
 
 // Middleware
 app.use(cors({
@@ -24,8 +26,24 @@ app.get('/', (req, res) => {
 
 // Health check route
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  const dbStatus = require('mongoose').connection.readyState;
+  const dbStatusMap = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    database: dbStatusMap[dbStatus] || 'unknown'
+  });
 });
+
+// Error handling middleware
+const errorHandler = require('./src/middleware/errorHandler');
+app.use(errorHandler);
 
 // Start server
 app.listen(config.port, () => {
