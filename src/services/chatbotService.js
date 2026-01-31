@@ -268,6 +268,83 @@ Use engaging language that celebrates the artistry and cultural heritage.`;
   }
 
   /**
+   * Validate message input
+   * @param {String} message - Message to validate
+   * @returns {Object} Validation result with isValid and error message
+   */
+  validateMessage(message) {
+    // Check if message exists
+    if (!message) {
+      return {
+        isValid: false,
+        error: 'empty',
+        reason: 'No message provided',
+      };
+    }
+
+    // Check if message is a string
+    if (typeof message !== 'string') {
+      return {
+        isValid: false,
+        error: 'invalid_type',
+        reason: 'Message must be a string',
+      };
+    }
+
+    // Check if message is only whitespace
+    if (message.trim() === '') {
+      return {
+        isValid: false,
+        error: 'whitespace_only',
+        reason: 'Message contains only whitespace',
+      };
+    }
+
+    // Check minimum length (at least 1 character after sanitization)
+    const sanitized = sanitizeText(message);
+    if (!sanitized || sanitized.trim().length === 0) {
+      return {
+        isValid: false,
+        error: 'no_content',
+        reason: 'Message has no valid content after sanitization',
+      };
+    }
+
+    // Check if message is too short to be meaningful
+    if (sanitized.trim().length < 2) {
+      return {
+        isValid: false,
+        error: 'too_short',
+        reason: 'Message is too short (minimum 2 characters)',
+      };
+    }
+
+    // Check maximum length
+    if (message.length > 1000) {
+      return {
+        isValid: false,
+        error: 'too_long',
+        reason: 'Message exceeds 1000 characters',
+      };
+    }
+
+    // Check for repeated characters (potential spam)
+    const repeatedPattern = /(.)\1{10,}/;
+    if (repeatedPattern.test(message)) {
+      return {
+        isValid: false,
+        error: 'spam_detected',
+        reason: 'Message contains excessive repeated characters',
+      };
+    }
+
+    return {
+      isValid: true,
+      sanitized,
+    };
+  }
+
+  /**
    * Format response text with consistent styling
    * @param {String} text - Raw text to format
    * @param {Object} options - Formatting options
@@ -305,6 +382,66 @@ Use engaging language that celebrates the artistry and cultural heritage.`;
       formatted: true,
       ...metadata,
     };
+  }
+
+  /**
+   * Generate error response for invalid input
+   * @param {String} errorType - Type of error
+   * @returns {Object} Error response object
+   */
+  createErrorResponse(errorType) {
+    const errorResponses = {
+      empty: this.createFormattedResponse(
+        '💬 **No Message Received**\n\n⚠️ Please type a message to start our conversation.\n\n**What would you like to know?**\n\n• Craft recognition features\n• How to upload images\n• Indian handicrafts\n• Voice search capabilities\n• Cultural insights',
+        ['Hi', 'Help me', 'Show features', 'Indian crafts'],
+        { error: true, errorType: 'empty', intent: 'error' }
+      ),
+
+      whitespace_only: this.createFormattedResponse(
+        '✍️ **Empty Message**\n\n⚠️ Your message appears to be empty (only whitespace detected).\n\n**Please type a valid question or command.**\n\n💡 **Try asking:**\n• "What features do you have?"\n• "How do I upload a craft?"\n• "Tell me about Indian crafts"',
+        ['Show features', 'Upload guide', 'Indian crafts', 'Help'],
+        { error: true, errorType: 'whitespace_only', intent: 'error' }
+      ),
+
+      no_content: this.createFormattedResponse(
+        '🔍 **No Valid Content**\n\n⚠️ Your message has no valid content after processing.\n\n**Please try again with a clear question.**\n\n📝 **Examples:**\n• Ask about craft types\n• Request help with features\n• Inquire about cultural significance',
+        ['Craft types', 'Features', 'Help', 'Cultural info'],
+        { error: true, errorType: 'no_content', intent: 'error' }
+      ),
+
+      too_short: this.createFormattedResponse(
+        '📏 **Message Too Short**\n\n⚠️ Your message is too short to understand.\n\n**Please provide at least 2 characters.**\n\n💡 **Quick starts:**\n• Type "hi" to begin\n• Ask "help" for assistance\n• Say "features" to explore',
+        ['Hi', 'Help', 'Features', 'Start'],
+        { error: true, errorType: 'too_short', intent: 'error' }
+      ),
+
+      too_long: this.createFormattedResponse(
+        '📝 **Message Too Long**\n\n⚠️ Your message exceeds the 1000 character limit.\n\n**Please:**\n• Break it into smaller questions\n• Focus on one topic at a time\n• Keep messages concise\n\n💡 I work best with clear, focused questions!',
+        ['Ask shorter question', 'Get help', 'Show features'],
+        { error: true, errorType: 'too_long', intent: 'error' }
+      ),
+
+      spam_detected: this.createFormattedResponse(
+        "🚫 **Invalid Input Detected**\n\n⚠️ Your message contains unusual patterns.\n\n**Please send a normal message.**\n\n📱 **I'm here to help with:**\n• Craft information\n• Upload assistance\n• Search features\n• Cultural insights",
+        ['Start fresh', 'Show features', 'Help'],
+        { error: true, errorType: 'spam_detected', intent: 'error' }
+      ),
+
+      invalid_type: this.createFormattedResponse(
+        '⚠️ **Invalid Message Format**\n\n❌ Message must be text.\n\n**Please send a text message.**\n\n💬 **You can ask about:**\n• Craft recognition\n• Voice search\n• Indian handicrafts\n• Upload features',
+        ['Help', 'Features', 'Start'],
+        { error: true, errorType: 'invalid_type', intent: 'error' }
+      ),
+    };
+
+    return (
+      errorResponses[errorType] ||
+      this.createFormattedResponse(
+        '❌ **Something Went Wrong**\n\nPlease try again with a valid message.',
+        ['Help', 'Start over'],
+        { error: true, errorType: 'unknown', intent: 'error' }
+      )
+    );
   }
 
   /**
@@ -451,21 +588,20 @@ Use engaging language that celebrates the artistry and cultural heritage.`;
    * @returns {Object} Response with text and suggestions
    */
   async processMessage(message, _context = {}) {
-    // Sanitize input
-    const sanitizedMessage = sanitizeText(message);
+    // Validate message
+    const validation = this.validateMessage(message);
 
-    if (!sanitizedMessage || sanitizedMessage.trim() === '') {
-      const emptyResponse = this.createFormattedResponse(
-        '💬 **Ready to Help!**\n\nPlease type a message to get started.\n\n**Quick Suggestions:**\n• Ask about features\n• Upload a craft\n• Learn about Indian crafts\n• Get help',
-        ['Hi', 'Help me', 'Show features', 'Indian crafts'],
-        { intent: 'empty', category: 'prompt' }
-      );
-
+    if (!validation.isValid) {
+      const errorResponse = this.createErrorResponse(validation.error);
       return {
-        ...emptyResponse,
+        ...errorResponse,
         timestamp: new Date().toISOString(),
+        validationError: validation.reason,
       };
     }
+
+    // Use sanitized message from validation
+    const sanitizedMessage = validation.sanitized;
 
     // Detect intent
     const intent = this.detectIntent(sanitizedMessage);

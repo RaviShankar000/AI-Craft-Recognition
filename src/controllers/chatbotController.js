@@ -9,28 +9,37 @@ const sendMessage = async (req, res) => {
   try {
     const { message, context } = req.body;
 
-    // Validate message
-    if (!message || typeof message !== 'string') {
+    // Basic type checking (detailed validation happens in service)
+    if (message === undefined || message === null) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid message',
-        message: 'Message must be a non-empty string',
+        error: 'Missing message',
+        message: 'Request body must include a message field',
       });
     }
 
-    // Check message length
-    if (message.length > 1000) {
-      return res.status(400).json({
-        success: false,
-        error: 'Message too long',
-        message: 'Message must be less than 1000 characters',
-      });
-    }
+    // Log incoming message
+    console.log(
+      'Chatbot message received:',
+      typeof message === 'string' ? message.substring(0, 100) : typeof message
+    );
 
-    console.log('Chatbot message received:', message.substring(0, 100));
-
-    // Process message through chatbot service
+    // Process message through chatbot service (service handles all validation)
     const response = await chatbotService.processMessage(message, context || {});
+
+    // Check if response is an error from validation
+    if (response.error && response.validationError) {
+      // Return 200 with error response (allows frontend to display error message)
+      return res.status(200).json({
+        success: true,
+        data: response,
+        validation: {
+          isValid: false,
+          error: response.errorType,
+          reason: response.validationError,
+        },
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -42,6 +51,7 @@ const sendMessage = async (req, res) => {
       success: false,
       error: 'Server error',
       message: 'Failed to process message',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
