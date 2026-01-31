@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const {
   getAllCrafts,
   createCraft,
@@ -33,13 +33,19 @@ router.get('/:id', getCraftById);
 // Voice search crafts
 router.get('/voice-search', protect, voiceSearchCrafts);
 
-// Create new craft
-router.post('/', protect, createCraft);
+/**
+ * PROTECTED ROUTES - ADMIN ONLY
+ * Master craft data management restricted to administrators
+ * Only admins can create, update, or delete craft definitions
+ */
 
-// Update craft
-router.put('/:id', protect, updateCraft);
+// Create new craft (admin only)
+router.post('/', protect, authorize('admin'), createCraft);
 
-// Delete craft
-router.delete('/:id', protect, deleteCraft);
+// Update craft (admin only)
+router.put('/:id', protect, authorize('admin'), updateCraft);
+
+// Delete craft (admin only)
+router.delete('/:id', protect, authorize('admin'), deleteCraft);
 
 module.exports = router;
