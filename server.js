@@ -30,12 +30,14 @@ const userRoutes = require('./src/routes/userRoutes');
 const craftRoutes = require('./src/routes/craftRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
+const aiRoutes = require('./src/routes/aiRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/crafts', craftRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

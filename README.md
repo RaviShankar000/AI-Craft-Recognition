@@ -106,6 +106,16 @@ cd ..
 
 ### Development Mode
 
+#### Start AI Service (Flask)
+
+```bash
+cd ai-services
+pip install -r requirements.txt
+python app.py
+```
+
+The AI service will start on `http://localhost:5001`.
+
 #### Start Backend Server
 
 ```bash
@@ -150,6 +160,9 @@ NODE_ENV=development
 # Database Configuration
 MONGODB_URI=mongodb://localhost:27017/ai-craft-recognition
 
+# AI Service Configuration
+AI_SERVICE_URL=http://localhost:5001
+
 # CORS Configuration
 CORS_ORIGIN=http://localhost:5173
 
@@ -166,11 +179,30 @@ See `.env.example` for a complete list of available configuration options.
 
 - `GET /health` - Check server and database status
 
-### Basic Routes
+### AI Service
 
-- `GET /` - Welcome message
+- `GET /api/ai/health` - Check AI service status
+- `POST /api/ai/predict` - Upload image and get craft prediction (Protected)
 
-More endpoints will be added as features are developed.
+### Authentication
+
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+
+### Crafts
+
+- `GET /api/crafts` - Get all crafts
+- `POST /api/crafts` - Create new craft (Protected)
+- `GET /api/crafts/:id` - Get craft by ID
+- `PUT /api/crafts/:id` - Update craft (Protected)
+- `DELETE /api/crafts/:id` - Delete craft (Protected)
+
+### File Upload
+
+- `POST /api/upload/single` - Upload single image (Protected)
+- `POST /api/upload/multiple` - Upload multiple images (Protected)
+
+More endpoints available - see route files for complete documentation.
 
 ## 🧪 Testing
 
