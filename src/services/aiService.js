@@ -34,11 +34,23 @@ class AIService {
    */
   static async predictCraft(file) {
     try {
+      // Validate file object
+      if (!file || !file.buffer) {
+        return {
+          success: false,
+          error: 'Invalid file object',
+          message: 'File buffer is missing',
+        };
+      }
+
       // Create form data with the image file
       const formData = new FormData();
+      
+      // Append buffer with proper metadata
       formData.append('image', file.buffer, {
-        filename: file.originalname,
-        contentType: file.mimetype,
+        filename: file.originalname || 'image.jpg',
+        contentType: file.mimetype || 'image/jpeg',
+        knownLength: file.size,
       });
 
       // Send request to Flask AI service
@@ -46,6 +58,8 @@ class AIService {
         headers: {
           ...formData.getHeaders(),
         },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
         timeout: 30000, // 30 seconds timeout for prediction
       });
 

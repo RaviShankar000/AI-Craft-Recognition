@@ -63,6 +63,9 @@ def predict():
                 'error': 'No file selected'
             }), 400
         
+        # Log incoming request for debugging
+        print(f"Received prediction request for: {file.filename}")
+        
         # Validate file type
         allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
         if not ('.' in file.filename and 
@@ -81,15 +84,16 @@ def predict():
                 'error': str(e)
             }), 400
         
+        # Get image metadata before preprocessing
+        image_info = image_preprocessor.get_image_info(file)
+        
         # Preprocess image
         preprocessed_image = image_preprocessor.preprocess(file)
         
-        # Get image metadata
-        file.stream.seek(0)
-        image_info = image_preprocessor.get_image_info(file)
-        
         # Perform ML prediction
         prediction = model.predict(preprocessed_image)
+        
+        print(f"Prediction completed: {prediction['top_prediction']['class']} ({prediction['top_prediction']['confidence']:.2f})")
         
         # Format response with craft name and confidence
         response = {
@@ -108,12 +112,16 @@ def predict():
         return jsonify(response), 200
         
     except ValueError as e:
+        print(f"Validation error: {str(e)}")
         return jsonify({
             'success': False,
             'error': 'Validation error',
             'message': str(e)
         }), 400
     except Exception as e:
+        print(f"Prediction error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': 'An error occurred during prediction',

@@ -17,18 +17,28 @@ class ImagePreprocessor:
         Validate that the uploaded file is a valid image
         
         Args:
-            file: Uploaded file object
+            file: Uploaded file object (Flask FileStorage)
             
         Returns:
             bool: True if valid, raises exception otherwise
         """
         try:
-            image = Image.open(file.stream)
+            # Read file content into memory
+            file_content = file.read()
+            
+            # Try to open image from bytes
+            image = Image.open(io.BytesIO(file_content))
             image.verify()
-            # Reset file pointer after verification
-            file.stream.seek(0)
+            
+            # Reset file pointer to beginning
+            file.seek(0)
             return True
         except Exception as e:
+            # Reset file pointer even on error
+            try:
+                file.seek(0)
+            except:
+                pass
             raise ValueError(f"Invalid image file: {str(e)}")
     
     def preprocess(self, file):
@@ -36,13 +46,16 @@ class ImagePreprocessor:
         Preprocess image for model inference
         
         Args:
-            file: Uploaded file object
+            file: Uploaded file object (Flask FileStorage)
             
         Returns:
             PIL.Image: Preprocessed image
         """
-        # Open image
-        image = Image.open(file.stream)
+        # Read file content into memory
+        file_content = file.read()
+        
+        # Open image from bytes
+        image = Image.open(io.BytesIO(file_content))
         
         # Convert to RGB if necessary
         if image.mode != 'RGB':
@@ -66,12 +79,16 @@ class ImagePreprocessor:
         Extract metadata from image
         
         Args:
-            file: Uploaded file object
+            file: Uploaded file object (Flask FileStorage)
             
         Returns:
             dict: Image metadata
         """
-        image = Image.open(file.stream)
+        # Read file content
+        file_content = file.read()
+        
+        # Open image from bytes
+        image = Image.open(io.BytesIO(file_content))
         
         info = {
             'format': image.format,
@@ -81,7 +98,7 @@ class ImagePreprocessor:
             'height': image.height
         }
         
-        # Reset file pointer
-        file.stream.seek(0)
+        # Reset file pointer for potential reuse
+        file.seek(0)
         
         return info

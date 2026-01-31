@@ -15,6 +15,21 @@ const predictCraft = async (req, res) => {
       });
     }
 
+    // Validate file has buffer (memory storage)
+    if (!req.file.buffer) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid file upload - buffer missing',
+      });
+    }
+
+    // Log file info for debugging
+    console.log('Processing image:', {
+      filename: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+    });
+
     // Send image to AI service
     const result = await AIService.predictCraft(req.file);
 
