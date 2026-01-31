@@ -6,6 +6,31 @@ This directory contains AI microservice code for craft recognition and analysis.
 
 Flask-based microservice that provides AI-powered craft recognition and classification.
 
+## Quick Start
+
+```bash
+# Navigate to this directory
+cd ai-services
+
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate  # macOS/Linux
+# or
+venv\Scripts\activate     # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the service
+python app.py
+```
+
+The service will start on `http://localhost:5001`
+
+## Detailed Setup
+
+For comprehensive setup instructions, see [SETUP.md](SETUP.md)
+
 ## Setup
 
 1. Install Python dependencies:

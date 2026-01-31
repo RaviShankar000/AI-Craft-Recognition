@@ -106,25 +106,58 @@ cd ..
 
 ### Development Mode
 
-#### Start AI Service (Flask)
+**Important:** Start services in this order:
+
+#### 1. Start MongoDB
+
+Ensure MongoDB is running on your system:
 
 ```bash
+# macOS (with Homebrew)
+brew services start mongodb-community
+
+# Linux
+sudo systemctl start mongodb
+
+# Or use MongoDB Atlas (cloud)
+```
+
+#### 2. Start AI Service (Flask)
+
+```bash
+# From root directory
 cd ai-services
-pip install -r requirements.txt
+
+# Activate virtual environment
+source venv/bin/activate  # macOS/Linux
+# or
+venv\Scripts\activate     # Windows
+
+# Run the service
 python app.py
 ```
 
 The AI service will start on `http://localhost:5001`.
 
-#### Start Backend Server
+**Verify it's running:**
+```bash
+curl http://localhost:5001/health
+```
+
+#### 3. Start Backend Server (Node.js)
+
+Open a new terminal:
 
 ```bash
+# From root directory
 npm run dev
 ```
 
 The backend server will start on `http://localhost:3000` with auto-restart enabled.
 
-#### Start Frontend Development Server
+#### 4. Start Frontend Development Server (React + Vite)
+
+Open another terminal:
 
 ```bash
 cd frontend
@@ -142,11 +175,46 @@ cd frontend
 npm run build
 ```
 
-#### Start Backend Server
+#### Start Services
 
 ```bash
+# Terminal 1: AI Service
+cd ai-services
+source venv/bin/activate
+FLASK_ENV=production python app.py
+
+# Terminal 2: Backend
 npm start
 ```
+
+## 🧪 Testing the Application
+
+### Test AI Service
+
+```bash
+# Health check
+curl http://localhost:5001/health
+
+# Test prediction with image
+curl -X POST http://localhost:5001/predict \
+  -F "image=@/path/to/craft-image.jpg"
+```
+
+### Test Backend API
+
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Test AI integration (requires authentication)
+curl -X POST http://localhost:3000/api/ai/predict \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "image=@/path/to/craft-image.jpg"
+```
+
+### Access Frontend
+
+Open browser and navigate to `http://localhost:5173`
 
 ## 🔐 Environment Variables
 
@@ -182,8 +250,21 @@ See `.env.example` for a complete list of available configuration options.
 ### AI Service
 
 - `GET /api/ai/health` - Check AI service status
-- `POST /api/ai/predict` - Upload image and get craft prediction (Protected)
+- `npm run lint` - Run ESLint
+- `npm run format` - Format code with Prettier
 
+### Frontend
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+### AI Service
+
+- `python app.py` - Start Flask service
+- `pip install -r requirements.txt` - Install dependencies
+- `pip freeze > requirements.txt` - Update dependencies
 ### Authentication
 
 - `POST /api/auth/register` - Register new user
@@ -217,6 +298,8 @@ npm test
 - `npm start` - Start production server
 - `npm run dev` - Start development server with auto-restart
 - `npm test` - Run tests
+- `npm run lint` - Run ESLint
+- `npm run format` - Format code with Prettier
 
 ### Frontend
 
@@ -225,6 +308,12 @@ npm test
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
 
+### AI Service
+
+- `python app.py` - Start Flask service
+- `pip install -r requirements.txt` - Install dependencies
+- `pip freeze > requirements.txt` - Update dependencies
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -232,6 +321,54 @@ npm test
 3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## 📚 Documentation
+
+- [AI Service Setup Guide](ai-services/SETUP.md) - Detailed AI service setup and usage
+- [Backend API Documentation](docs/API.md) - API endpoints and usage (coming soon)
+- [Frontend Guide](frontend/README.md) - Frontend setup and development
+
+## 🔧 Troubleshooting
+
+### AI Service Issues
+
+**Port already in use:**
+```bash
+# Find process using port 5001
+lsof -i :5001  # macOS/Linux
+netstat -ano | findstr :5001  # Windows
+
+# Use different port
+PORT=5002 python app.py
+```
+
+**Module not found:**
+```bash
+# Ensure virtual environment is activated
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Backend Issues
+
+**MongoDB connection failed:**
+- Ensure MongoDB is running
+- Check `MONGODB_URI` in `.env`
+- Verify network connectivity
+
+**AI service unavailable:**
+- Ensure AI service is running on port 5001
+- Check `AI_SERVICE_URL` in backend `.env`
+- Verify firewall settings
+
+### Frontend Issues
+
+**Cannot connect to backend:**
+- Ensure backend is running on port 3000
+- Check `VITE_API_URL` in frontend `.env`
+- Verify CORS settings
+
+For more troubleshooting tips, see [ai-services/SETUP.md](ai-services/SETUP.md)
 
 ### Commit Convention
 
