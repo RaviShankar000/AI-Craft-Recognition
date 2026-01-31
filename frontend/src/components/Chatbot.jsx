@@ -59,7 +59,7 @@ const Chatbot = () => {
       };
 
       setMessages(prev => [...prev, botMessage]);
-    } catch (error) {
+    } catch {
       const errorMessage = {
         id: Date.now() + 1,
         text: 'Sorry, I encountered an error. Please try again.',

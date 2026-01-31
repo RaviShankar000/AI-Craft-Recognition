@@ -162,7 +162,7 @@ const CraftUpload = () => {
       });
 
       // Append images
-      images.forEach((image, index) => {
+      images.forEach((image) => {
         formDataToSend.append('images', image);
       });
 
@@ -192,7 +192,7 @@ const CraftUpload = () => {
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    } catch (error) {
+    } catch {
       setErrors({ submit: 'Failed to upload craft. Please try again.' });
     } finally {
       setIsSubmitting(false);

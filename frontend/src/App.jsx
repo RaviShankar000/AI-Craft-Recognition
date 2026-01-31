@@ -5,6 +5,7 @@ import CraftPredictor from './components/CraftPredictor';
 import VoiceSearch from './components/VoiceSearch';
 import CraftUpload from './components/CraftUpload';
 import Chatbot from './components/Chatbot';
+import Marketplace from './components/Marketplace';
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
             </div>
           } />
           <Route path="crafts" element={<CraftUpload />} />
-          <Route path="products" element={<div>Products Page</div>} />
+          <Route path="products" element={<Marketplace />} />
           <Route path="orders" element={<div>Orders Page</div>} />
           <Route path="analytics" element={<div>Analytics Page</div>} />
           <Route path="chatbot" element={<Chatbot />} />
