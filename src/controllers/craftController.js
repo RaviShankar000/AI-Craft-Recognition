@@ -392,9 +392,11 @@ const voiceSearchCrafts = async (req, res) => {
 };
 
 /**
- * Get popular crafts based on views
+ * Get popular crafts based on views (Platform-wide analytics)
  * @route GET /api/crafts/popular
- * @access Private
+ * @access Private/Admin
+ * @description Returns popular crafts with analytics data (views, unique users)
+ *              Restricted to admin users only for platform-wide insights
  */
 const getPopularCrafts = async (req, res) => {
   try {

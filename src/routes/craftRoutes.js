@@ -16,9 +16,6 @@ const {
  * No authentication required
  */
 
-// Get popular crafts
-router.get('/popular', getPopularCrafts);
-
 // Get all crafts
 router.get('/', getAllCrafts);
 
@@ -35,9 +32,11 @@ router.get('/voice-search', protect, voiceSearchCrafts);
 
 /**
  * PROTECTED ROUTES - ADMIN ONLY
- * Master craft data management restricted to administrators
- * Only admins can create, update, or delete craft definitions
+ * Master craft data management and analytics restricted to administrators
  */
+
+// Get popular crafts (admin-only analytics)
+router.get('/popular', protect, authorize('admin'), getPopularCrafts);
 
 // Create new craft (admin only)
 router.post('/', protect, authorize('admin'), createCraft);

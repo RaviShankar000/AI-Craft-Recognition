@@ -205,13 +205,15 @@ const cancelOrder = async (req, res) => {
 };
 
 /**
- * Get order statistics
+ * Get order statistics (Platform-wide analytics)
  * @route GET /api/orders/stats
- * @access Private
+ * @access Private/Admin
+ * @description Returns platform-wide order statistics and analytics for admin users
  */
 const getOrderStats = async (req, res) => {
   try {
-    const stats = await Order.getStatistics(req.user._id);
+    // Admin users get platform-wide statistics (no userId filter)
+    const stats = await Order.getStatistics();
 
     res.status(200).json({
       success: true,

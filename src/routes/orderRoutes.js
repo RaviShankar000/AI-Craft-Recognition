@@ -20,9 +20,6 @@ const {
 // Get user orders
 router.get('/', protect, getAllOrders);
 
-// Get order statistics
-router.get('/stats', protect, getOrderStats);
-
 // Track order by number
 router.get('/track/:orderNumber', protect, trackOrder);
 
@@ -36,6 +33,9 @@ router.post('/:id/cancel', protect, cancelOrder);
  * PROTECTED ROUTES - ADMIN ONLY
  * Authentication + Admin role required
  */
+
+// Get order statistics (admin-only platform-wide analytics)
+router.get('/stats', protect, authorize('admin'), getOrderStats);
 
 // Get all orders (admin view)
 router.get('/admin/all', protect, authorize('admin'), getAllOrdersAdmin);
