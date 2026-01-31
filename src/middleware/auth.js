@@ -18,6 +18,7 @@ const protect = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         error: 'Not authorized to access this route. Please provide a valid token.',
+        code: 'NO_TOKEN',
       });
     }
 
@@ -46,10 +47,27 @@ const protect = async (req, res, next) => {
       // Attach user to request object
       req.user = user;
       next();
-    } catch {
+    } catch (error) {
+      // Handle specific token errors
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          success: false,
+          error: error.message,
+          code: 'TOKEN_EXPIRED',
+        });
+      }
+      if (error.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+          success: false,
+          error: error.message,
+          code: 'INVALID_TOKEN',
+        });
+      }
+      // Generic token error
       return res.status(401).json({
         success: false,
-        error: 'Invalid or expired token.',
+        error: 'Authentication failed. Please login again.',
+        code: 'AUTH_FAILED',
       });
     }
   } catch {

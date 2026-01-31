@@ -19,12 +19,23 @@ const generateToken = payload => {
  * Verify JWT token
  * @param {string} token - JWT token to verify
  * @returns {Object} Decoded token payload
+ * @throws {Error} With specific error type
  */
 const verifyToken = token => {
   try {
     return jwt.verify(token, config.jwtSecret || 'your-secret-key-change-in-production');
-  } catch {
-    throw new Error('Invalid or expired token');
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      const err = new Error('Token has expired. Please login again.');
+      err.name = 'TokenExpiredError';
+      throw err;
+    }
+    if (error.name === 'JsonWebTokenError') {
+      const err = new Error('Invalid token. Please provide a valid token.');
+      err.name = 'JsonWebTokenError';
+      throw err;
+    }
+    throw new Error('Token verification failed');
   }
 };
 
