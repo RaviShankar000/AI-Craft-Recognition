@@ -1,0 +1,44 @@
+.dashboard-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f7fa;
+}
+
+.dashboard-container {
+  display: flex;
+  flex: 1;
+  padding-top: 64px; /* Height of navbar */
+}
+
+.dashboard-main {
+  flex: 1;
+  transition: margin-left 0.3s ease;
+  overflow-x: hidden;
+}
+
+.dashboard-main.sidebar-open {
+  margin-left: 260px;
+}
+
+.dashboard-main.sidebar-closed {
+  margin-left: 70px;
+}
+
+.dashboard-content {
+  padding: 24px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dashboard-main.sidebar-open,
+  .dashboard-main.sidebar-closed {
+    margin-left: 0;
+  }
+
+  .dashboard-content {
+    padding: 16px;
+  }
+}
