@@ -19,12 +19,14 @@ AI Craft Recognition is a modern web application that leverages artificial intel
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - React 19.2.0
 - Vite 7.2.4
 - Axios for API calls
 - Modern CSS with responsive design
 
 ### Backend
+
 - Node.js with Express 5.2.1
 - MongoDB with Mongoose 9.1.5
 - CORS enabled
@@ -57,6 +59,7 @@ ai-craft-recognition/
 ## ⚙️ Prerequisites
 
 Before you begin, ensure you have the following installed:
+
 - Node.js (v18 or higher)
 - npm or yarn
 - MongoDB (v6 or higher)
@@ -65,6 +68,7 @@ Before you begin, ensure you have the following installed:
 ## 🔧 Installation
 
 ### 1. Clone the repository
+
 ```bash
 git clone https://github.com/RaviShankar000/AI-Craft-Recognition.git
 cd AI-Craft-Recognition
@@ -103,27 +107,33 @@ cd ..
 ### Development Mode
 
 #### Start Backend Server
+
 ```bash
 npm run dev
 ```
+
 The backend server will start on `http://localhost:3000` with auto-restart enabled.
 
 #### Start Frontend Development Server
+
 ```bash
 cd frontend
 npm run dev
 ```
+
 The frontend will start on `http://localhost:5173` with hot module replacement.
 
 ### Production Mode
 
 #### Build Frontend
+
 ```bash
 cd frontend
 npm run build
 ```
 
 #### Start Backend Server
+
 ```bash
 npm start
 ```
@@ -153,9 +163,11 @@ See `.env.example` for a complete list of available configuration options.
 ## 📡 API Endpoints
 
 ### Health Check
+
 - `GET /health` - Check server and database status
 
 ### Basic Routes
+
 - `GET /` - Welcome message
 
 More endpoints will be added as features are developed.
@@ -169,11 +181,13 @@ npm test
 ## 📦 Scripts
 
 ### Backend
+
 - `npm start` - Start production server
 - `npm run dev` - Start development server with auto-restart
 - `npm test` - Run tests
 
 ### Frontend
+
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
@@ -188,7 +202,9 @@ npm test
 5. Open a Pull Request
 
 ### Commit Convention
+
 This project follows conventional commits:
+
 - `feat:` - New features
 - `fix:` - Bug fixes
 - `docs:` - Documentation changes
@@ -202,6 +218,7 @@ This project is licensed under the ISC License.
 ## 👤 Author
 
 **Ravi Shankar Patro**
+
 - GitHub: [@RaviShankar000](https://github.com/RaviShankar000)
 
 ## 🙏 Acknowledgments

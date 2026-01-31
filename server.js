@@ -12,10 +12,12 @@ connectDB().catch(err => {
 });
 
 // Middleware
-app.use(cors({
-  origin: config.corsOrigin,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: config.corsOrigin,
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -31,13 +33,13 @@ app.get('/health', (req, res) => {
     0: 'disconnected',
     1: 'connected',
     2: 'connecting',
-    3: 'disconnecting'
+    3: 'disconnecting',
   };
 
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
-    database: dbStatusMap[dbStatus] || 'unknown'
+    database: dbStatusMap[dbStatus] || 'unknown',
   });
 });
 

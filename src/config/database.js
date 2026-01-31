@@ -17,7 +17,7 @@ const connectDB = async () => {
       console.log('Mongoose connected to MongoDB');
     });
 
-    mongoose.connection.on('error', (err) => {
+    mongoose.connection.on('error', err => {
       console.error(`❌ Mongoose connection error: ${err.message}`);
     });
 
@@ -31,11 +31,12 @@ const connectDB = async () => {
       console.log('Mongoose connection closed due to app termination');
       process.exit(0);
     });
-
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    console.error('Failed to connect to MongoDB. Please check your connection string and ensure MongoDB is running.');
-    
+    console.error(
+      'Failed to connect to MongoDB. Please check your connection string and ensure MongoDB is running.'
+    );
+
     // Exit with failure in production, allow retry in development
     if (config.nodeEnv === 'production') {
       process.exit(1);

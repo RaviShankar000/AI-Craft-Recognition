@@ -1,11 +1,13 @@
 # Environment Variables Setup
 
 ## Overview
+
 This project uses environment variables to manage configuration securely. All sensitive information should be stored in the `.env` file which is not tracked by git.
 
 ## Setup Instructions
 
 1. Copy the `.env.example` file to create your own `.env` file:
+
    ```bash
    cp .env.example .env
    ```
@@ -19,9 +21,11 @@ This project uses environment variables to manage configuration securely. All se
 ## Environment Variables
 
 ### Required
+
 - `MONGODB_URI` - MongoDB connection string
 
 ### Optional
+
 - `PORT` - Server port (default: 3000)
 - `NODE_ENV` - Environment mode (development/production)
 - `CORS_ORIGIN` - Allowed CORS origin (default: http://localhost:5173)
@@ -31,6 +35,7 @@ This project uses environment variables to manage configuration securely. All se
 - `JWT_EXPIRE` - JWT token expiration time
 
 ## Security Notes
+
 - Never commit the `.env` file to version control
 - Use strong, random strings for secrets
 - Rotate API keys and secrets regularly

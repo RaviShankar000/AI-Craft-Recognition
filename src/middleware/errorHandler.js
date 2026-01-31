@@ -1,4 +1,4 @@
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
   console.error(err.stack);
 
   // Mongoose validation error
@@ -7,7 +7,7 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({
       success: false,
       error: 'Validation Error',
-      messages
+      messages,
     });
   }
 
@@ -17,7 +17,7 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({
       success: false,
       error: 'Duplicate Field',
-      message: `${field} already exists`
+      message: `${field} already exists`,
     });
   }
 
@@ -26,7 +26,7 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({
       success: false,
       error: 'Invalid ID',
-      message: 'Resource not found'
+      message: 'Resource not found',
     });
   }
 
@@ -34,7 +34,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(err.statusCode || 500).json({
     success: false,
     error: err.message || 'Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };
 

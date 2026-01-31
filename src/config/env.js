@@ -27,9 +27,9 @@ const config = {
 // Validate required environment variables
 const validateConfig = () => {
   const required = ['mongodbUri'];
-  
+
   const missing = required.filter(key => !config[key.replace(/([A-Z])/g, '_$1').toLowerCase()]);
-  
+
   if (missing.length > 0 && config.nodeEnv === 'production') {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
