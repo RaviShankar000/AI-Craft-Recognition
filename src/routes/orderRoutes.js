@@ -3,11 +3,13 @@ const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const {
   getAllOrders,
-  createOrder,
   getOrderById,
-  updateOrder,
-  deleteOrder,
+  trackOrder,
+  cancelOrder,
+  getOrderStats,
+  updateOrderStatus,
   getAllOrdersAdmin,
+  deleteOrder,
 } = require('../controllers/orderController');
 
 // All order routes require authentication
@@ -17,11 +19,16 @@ router.use(protect);
 router.get('/admin/all', authorize('admin'), getAllOrdersAdmin);
 
 // User order routes
-router.route('/').get(getAllOrders).post(createOrder);
+router.get('/', getAllOrders);
+router.get('/stats', getOrderStats);
+router.get('/track/:orderNumber', trackOrder);
+router.get('/:id', getOrderById);
 
-router.route('/:id').get(getOrderById);
+// Order cancellation
+router.post('/:id/cancel', cancelOrder);
 
 // Admin-only order management
-router.route('/:id').put(authorize('admin'), updateOrder).delete(authorize('admin'), deleteOrder);
+router.patch('/:id/status', authorize('admin'), updateOrderStatus);
+router.delete('/:id', authorize('admin'), deleteOrder);
 
 module.exports = router;

@@ -1,41 +1,43 @@
+const Order = require('../models/Order');
+
 /**
- * Get all orders
+ * Get all user orders
  * @route GET /api/orders
  * @access Private
  */
 const getAllOrders = async (req, res) => {
   try {
-    // TODO: Implement order retrieval logic
+    const { status, page = 1, limit = 10, sort = '-createdAt' } = req.query;
+
+    // Build query
+    const query = { user: req.user._id };
+
+    // Filter by status if provided
+    if (status) {
+      query.status = status;
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Execute query
+    const orders = await Order.find(query)
+      .populate('items.product', 'name price')
+      .populate('items.craft', 'name state')
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('-__v');
+
+    const total = await Order.countDocuments(query);
+
     res.status(200).json({
       success: true,
-      message: 'Get all orders endpoint',
-      data: {
-        userId: req.user._id,
-        orders: [],
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-/**
- * Create a new order
- * @route POST /api/orders
- * @access Private
- */
-const createOrder = async (req, res) => {
-  try {
-    // TODO: Implement order creation logic
-    res.status(201).json({
-      success: true,
-      message: 'Order created successfully',
-      data: {
-        userId: req.user._id,
-      },
+      count: orders.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      data: orders,
     });
   } catch (error) {
     res.status(500).json({
@@ -52,13 +54,73 @@ const createOrder = async (req, res) => {
  */
 const getOrderById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const order = await Order.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    })
+      .populate('items.product', 'name price stock')
+      .populate('items.craft', 'name state category');
 
-    // TODO: Implement order retrieval by ID logic
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found',
+      });
+    }
+
     res.status(200).json({
       success: true,
-      message: 'Get order by ID endpoint',
-      data: { id, userId: req.user._id },
+      data: order,
+    });
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid order ID',
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Track order by order number
+ * @route GET /api/orders/track/:orderNumber
+ * @access Private
+ */
+const trackOrder = async (req, res) => {
+  try {
+    const order = await Order.findOne({
+      orderNumber: req.params.orderNumber,
+      user: req.user._id,
+    })
+      .populate('items.product', 'name')
+      .populate('items.craft', 'name state')
+      .select('orderNumber status statusHistory totalAmount shippingAddress createdAt deliveredAt');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        orderNumber: order.orderNumber,
+        status: order.status,
+        totalAmount: order.totalAmount,
+        itemCount: order.items.length,
+        statusHistory: order.statusHistory,
+        estimatedDelivery: order.deliveredAt || getEstimatedDelivery(order.createdAt),
+        shippingAddress: order.shippingAddress,
+        canBeCancelled: order.canBeCancelled,
+        isCompleted: order.isCompleted,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -69,19 +131,79 @@ const getOrderById = async (req, res) => {
 };
 
 /**
- * Update order
- * @route PUT /api/orders/:id
- * @access Private/Admin
+ * Cancel order
+ * @route POST /api/orders/:id/cancel
+ * @access Private
  */
-const updateOrder = async (req, res) => {
+const cancelOrder = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { reason } = req.body;
 
-    // TODO: Implement order update logic
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cancellation reason is required',
+      });
+    }
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found',
+      });
+    }
+
+    await order.cancelOrder(reason);
+
     res.status(200).json({
       success: true,
-      message: 'Order updated successfully',
-      data: { id },
+      message: 'Order cancelled successfully',
+      data: {
+        orderNumber: order.orderNumber,
+        status: order.status,
+        cancelledAt: order.cancelledAt,
+        cancellationReason: order.cancellationReason,
+      },
+    });
+  } catch (error) {
+    if (error.message.includes('cannot be cancelled')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid order ID',
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get order statistics
+ * @route GET /api/orders/stats
+ * @access Private
+ */
+const getOrderStats = async (req, res) => {
+  try {
+    const stats = await Order.getStatistics(req.user._id);
+
+    res.status(200).json({
+      success: true,
+      data: stats,
     });
   } catch (error) {
     res.status(500).json({
@@ -92,21 +214,56 @@ const updateOrder = async (req, res) => {
 };
 
 /**
- * Delete order
- * @route DELETE /api/orders/:id
+ * Update order status (Admin only)
+ * @route PATCH /api/orders/:id/status
  * @access Private/Admin
  */
-const deleteOrder = async (req, res) => {
+const updateOrderStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { status, note } = req.body;
 
-    // TODO: Implement order deletion logic
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        error: 'Status is required',
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found',
+      });
+    }
+
+    await order.updateStatus(status, note);
+
     res.status(200).json({
       success: true,
-      message: 'Order deleted successfully',
-      data: { id },
+      message: 'Order status updated successfully',
+      data: {
+        orderNumber: order.orderNumber,
+        status: order.status,
+        statusHistory: order.statusHistory,
+      },
     });
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid order ID',
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: error.message,
@@ -121,13 +278,53 @@ const deleteOrder = async (req, res) => {
  */
 const getAllOrdersAdmin = async (req, res) => {
   try {
-    // TODO: Implement admin order retrieval logic
+    const { status, user, page = 1, limit = 20, sort = '-createdAt' } = req.query;
+
+    // Build query
+    const query = {};
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (user) {
+      query.user = user;
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Execute query
+    const orders = await Order.find(query)
+      .populate('user', 'name email')
+      .populate('items.product', 'name price')
+      .populate('items.craft', 'name state')
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('-__v');
+
+    const total = await Order.countDocuments(query);
+
+    // Get order statistics
+    const statusCounts = await Order.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$totalAmount' },
+        },
+      },
+    ]);
+
     res.status(200).json({
       success: true,
-      message: 'Get all orders (Admin) endpoint',
-      data: {
-        orders: [],
-      },
+      count: orders.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      statistics: statusCounts,
+      data: orders,
     });
   } catch (error) {
     res.status(500).json({
@@ -137,11 +334,59 @@ const getAllOrdersAdmin = async (req, res) => {
   }
 };
 
+/**
+ * Delete order (Admin only)
+ * @route DELETE /api/orders/:id
+ * @access Private/Admin
+ */
+const deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found',
+      });
+    }
+
+    await order.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Order deleted successfully',
+      data: {},
+    });
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid order ID',
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Helper function to calculate estimated delivery
+ */
+const getEstimatedDelivery = createdAt => {
+  const deliveryDate = new Date(createdAt);
+  deliveryDate.setDate(deliveryDate.getDate() + 7); // 7 days from order
+  return deliveryDate;
+};
+
 module.exports = {
   getAllOrders,
-  createOrder,
   getOrderById,
-  updateOrder,
-  deleteOrder,
+  trackOrder,
+  cancelOrder,
+  getOrderStats,
+  updateOrderStatus,
   getAllOrdersAdmin,
+  deleteOrder,
 };
