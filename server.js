@@ -31,6 +31,7 @@ const craftRoutes = require('./src/routes/craftRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
 const aiRoutes = require('./src/routes/aiRoutes');
+const speechRoutes = require('./src/routes/speechRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -38,6 +39,7 @@ app.use('/api/crafts', craftRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/speech', speechRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

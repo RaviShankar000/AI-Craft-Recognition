@@ -250,21 +250,13 @@ See `.env.example` for a complete list of available configuration options.
 ### AI Service
 
 - `GET /api/ai/health` - Check AI service status
-- `npm run lint` - Run ESLint
-- `npm run format` - Format code with Prettier
+- `POST /api/ai/predict` - Upload image and get craft prediction (Protected)
 
-### Frontend
+### Speech-to-Text
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
+- `GET /api/speech/status` - Check speech service status
+- `POST /api/speech/transcribe` - Upload audio file for transcription (Protected)
 
-### AI Service
-
-- `python app.py` - Start Flask service
-- `pip install -r requirements.txt` - Install dependencies
-- `pip freeze > requirements.txt` - Update dependencies
 ### Authentication
 
 - `POST /api/auth/register` - Register new user
