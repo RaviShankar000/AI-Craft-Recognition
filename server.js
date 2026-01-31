@@ -24,9 +24,13 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
+const craftRoutes = require('./src/routes/craftRoutes');
+const orderRoutes = require('./src/routes/orderRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/crafts', craftRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
