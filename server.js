@@ -23,7 +23,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 const authRoutes = require('./src/routes/authRoutes');
+const userRoutes = require('./src/routes/userRoutes');
+
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
