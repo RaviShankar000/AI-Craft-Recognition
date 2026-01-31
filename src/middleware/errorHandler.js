@@ -1,6 +1,30 @@
 const errorHandler = (err, req, res, _next) => {
   console.error(err.stack);
 
+  // Role authorization error
+  if (err.code === 'ROLE_AUTHORIZATION_FAILED') {
+    return res.status(403).json({
+      success: false,
+      error: err.message,
+      code: err.code,
+      details: {
+        userRole: err.details?.userRole,
+        requiredRoles: err.details?.requiredRoles,
+        route: err.details?.route,
+        method: err.details?.method,
+      },
+    });
+  }
+
+  // Authentication error
+  if (err.code === 'NOT_AUTHENTICATED') {
+    return res.status(401).json({
+      success: false,
+      error: err.message,
+      code: err.code,
+    });
+  }
+
   // Mongoose validation error
   if (err.name === 'ValidationError') {
     const messages = Object.values(err.errors).map(e => e.message);

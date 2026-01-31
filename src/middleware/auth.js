@@ -115,10 +115,10 @@ const authorize = (...roles) => {
 
     if (!req.user) {
       console.log('[AUTH DEBUG] Authorization failed: No user attached to request');
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated.',
-      });
+      const error = new Error('Not authenticated.');
+      error.statusCode = 401;
+      error.code = 'NOT_AUTHENTICATED';
+      return next(error);
     }
 
     if (!roles.includes(req.user.role)) {
@@ -128,10 +128,16 @@ const authorize = (...roles) => {
         requiredRoles: roles,
         reason: 'User role not in allowed roles'
       });
-      return res.status(403).json({
-        success: false,
-        error: `User role '${req.user.role}' is not authorized to access this route.`,
-      });
+      const error = new Error(`Access denied. User role '${req.user.role}' is not authorized to access this route.`);
+      error.statusCode = 403;
+      error.code = 'ROLE_AUTHORIZATION_FAILED';
+      error.details = {
+        userRole: req.user.role,
+        requiredRoles: roles,
+        route: req.originalUrl,
+        method: req.method
+      };
+      return next(error);
     }
 
     console.log('[AUTH DEBUG] Authorization granted:', {
