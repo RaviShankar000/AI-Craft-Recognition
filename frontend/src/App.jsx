@@ -6,6 +6,7 @@ import VoiceSearch from './components/VoiceSearch';
 import CraftUpload from './components/CraftUpload';
 import Chatbot from './components/Chatbot';
 import Marketplace from './components/Marketplace';
+import Cart from './components/Cart';
 
 function App() {
   return (
@@ -22,7 +23,7 @@ function App() {
           } />
           <Route path="crafts" element={<CraftUpload />} />
           <Route path="products" element={<Marketplace />} />
-          <Route path="orders" element={<div>Orders Page</div>} />
+          <Route path="orders" element={<Cart />} />
           <Route path="analytics" element={<div>Analytics Page</div>} />
           <Route path="chatbot" element={<Chatbot />} />
         </Route>
