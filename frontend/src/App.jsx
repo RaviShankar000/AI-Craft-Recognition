@@ -4,6 +4,7 @@ import DashboardLayout from './components/DashboardLayout';
 import CraftPredictor from './components/CraftPredictor';
 import VoiceSearch from './components/VoiceSearch';
 import CraftUpload from './components/CraftUpload';
+import Chatbot from './components/Chatbot';
 
 function App() {
   return (
@@ -22,7 +23,7 @@ function App() {
           <Route path="products" element={<div>Products Page</div>} />
           <Route path="orders" element={<div>Orders Page</div>} />
           <Route path="analytics" element={<div>Analytics Page</div>} />
-          <Route path="chatbot" element={<div>AI Assistant Page</div>} />
+          <Route path="chatbot" element={<Chatbot />} />
         </Route>
       </Routes>
     </Router>
