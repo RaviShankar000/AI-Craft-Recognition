@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import VoiceInput from './VoiceInput';
-import craftService from '../services/craftService';
-import { sanitizeTranscript } from '../utils/sanitizer';
+import VoiceSearchService from '../services/voiceSearchService';
 import './VoiceSearch.css';
 
 function VoiceSearch() {
@@ -11,32 +10,35 @@ function VoiceSearch() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleVoiceTranscript = async (transcript) => {
-    if (!transcript || transcript.trim() === '') {
+    // Process and search using voice search service
+    const processedQuery = VoiceSearchService.processVoiceQuery(transcript);
+
+    if (!processedQuery) {
       return;
     }
 
-    // Sanitize the transcript
-    const sanitizedQuery = sanitizeTranscript(transcript, {
-      maxLength: 200,
-      removeScripts: true,
-      normalizeWhitespace: true,
-    });
-
-    setSearchQuery(sanitizedQuery);
-    await performSearch(sanitizedQuery);
+    setSearchQuery(processedQuery);
+    await performSearch(processedQuery);
   };
 
   const performSearch = async (query) => {
+    // Validate query
+    const validation = VoiceSearchService.validateSearchQuery(query);
+    if (!validation.valid) {
+      setError(validation.error);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Use voice search endpoint for better analytics and sanitization
-      const results = await craftService.voiceSearchCrafts(query);
+      // Use voice search service
+      const results = await VoiceSearchService.searchCrafts(query);
 
       if (results.success) {
         setSearchResults(results.data);
-        console.log(`Found ${results.count} crafts matching: "${results.query || query}"`);
+        console.log(`Found ${results.count} crafts matching: "${results.query}"`);
       } else {
         setError(results.error || 'Failed to search crafts');
         setSearchResults([]);
