@@ -56,17 +56,17 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Generate JWT token
+// Generate JWT token with user role
 userSchema.methods.generateAuthToken = function () {
   const token = jwt.sign(
     {
       id: this._id,
       email: this.email,
-      role: this.role,
+      role: this.role, // Include user role for role-based access control
     },
     config.jwtSecret || 'your-secret-key-change-in-production',
     {
-      expiresIn: config.jwtExpire,
+      expiresIn: config.jwtExpire, // Token expiration time
     }
   );
   return token;

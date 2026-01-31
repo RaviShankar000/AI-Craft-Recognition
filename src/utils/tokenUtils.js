@@ -6,11 +6,18 @@ const config = require('../config/env');
  * @param {Object} payload - Token payload
  * @param {string} payload.id - User ID
  * @param {string} payload.email - User email
- * @param {string} payload.role - User role
+ * @param {string} payload.role - User role (user, admin, seller)
  * @returns {string} JWT token
  */
 const generateToken = payload => {
-  return jwt.sign(payload, config.jwtSecret || 'your-secret-key-change-in-production', {
+  // Ensure role is included in the payload
+  const tokenPayload = {
+    id: payload.id,
+    email: payload.email,
+    role: payload.role || 'user', // Default to 'user' if role not provided
+  };
+
+  return jwt.sign(tokenPayload, config.jwtSecret || 'your-secret-key-change-in-production', {
     expiresIn: config.jwtExpire,
   });
 };
@@ -42,10 +49,20 @@ const verifyToken = token => {
 /**
  * Generate refresh token
  * @param {Object} payload - Token payload
+ * @param {string} payload.id - User ID
+ * @param {string} payload.email - User email
+ * @param {string} payload.role - User role (user, admin, seller)
  * @returns {string} Refresh token
  */
 const generateRefreshToken = payload => {
-  return jwt.sign(payload, config.jwtSecret || 'your-secret-key-change-in-production', {
+  // Ensure role is included in the refresh token payload
+  const tokenPayload = {
+    id: payload.id,
+    email: payload.email,
+    role: payload.role || 'user',
+  };
+
+  return jwt.sign(tokenPayload, config.jwtSecret || 'your-secret-key-change-in-production', {
     expiresIn: '7d',
   });
 };
