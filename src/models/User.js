@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const config = require('../config/env');
 
 const userSchema = new mongoose.Schema(
   {
@@ -52,6 +54,22 @@ userSchema.pre('save', async function (next) {
 // Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Generate JWT token
+userSchema.methods.generateAuthToken = function () {
+  const token = jwt.sign(
+    {
+      id: this._id,
+      email: this.email,
+      role: this.role,
+    },
+    config.jwtSecret || 'your-secret-key-change-in-production',
+    {
+      expiresIn: config.jwtExpire,
+    }
+  );
+  return token;
 };
 
 // Remove password from JSON output

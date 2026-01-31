@@ -1,0 +1,46 @@
+const jwt = require('jsonwebtoken');
+const config = require('../config/env');
+
+/**
+ * Generate JWT token for user
+ * @param {Object} payload - Token payload
+ * @param {string} payload.id - User ID
+ * @param {string} payload.email - User email
+ * @param {string} payload.role - User role
+ * @returns {string} JWT token
+ */
+const generateToken = payload => {
+  return jwt.sign(payload, config.jwtSecret || 'your-secret-key-change-in-production', {
+    expiresIn: config.jwtExpire,
+  });
+};
+
+/**
+ * Verify JWT token
+ * @param {string} token - JWT token to verify
+ * @returns {Object} Decoded token payload
+ */
+const verifyToken = token => {
+  try {
+    return jwt.verify(token, config.jwtSecret || 'your-secret-key-change-in-production');
+  } catch {
+    throw new Error('Invalid or expired token');
+  }
+};
+
+/**
+ * Generate refresh token
+ * @param {Object} payload - Token payload
+ * @returns {string} Refresh token
+ */
+const generateRefreshToken = payload => {
+  return jwt.sign(payload, config.jwtSecret || 'your-secret-key-change-in-production', {
+    expiresIn: '7d',
+  });
+};
+
+module.exports = {
+  generateToken,
+  verifyToken,
+  generateRefreshToken,
+};
