@@ -21,16 +21,21 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
+
 // Routes
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const craftRoutes = require('./src/routes/craftRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
+const uploadRoutes = require('./src/routes/uploadRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/crafts', craftRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -55,7 +60,9 @@ app.get('/health', (req, res) => {
 });
 
 // Error handling middleware
+const handleMulterError = require('./src/middleware/multerErrorHandler');
 const errorHandler = require('./src/middleware/errorHandler');
+app.use(handleMulterError);
 app.use(errorHandler);
 
 // Start server
