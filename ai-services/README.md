@@ -34,16 +34,19 @@ For comprehensive setup instructions, see [SETUP.md](SETUP.md)
 ## Setup
 
 1. Install Python dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 2. Create environment file:
+
 ```bash
 cp .env.example .env
 ```
 
 3. Run the service:
+
 ```bash
 python app.py
 ```
@@ -53,16 +56,19 @@ The service will start on `http://localhost:5001`
 ## API Endpoints
 
 ### Health Check
+
 - **GET** `/health`
 - Returns service status
 
 ### Predict Craft Type
+
 - **POST** `/predict`
 - Content-Type: `multipart/form-data`
 - Field: `image` (file)
 - Returns: JSON with craft name, confidence score, and all predictions
 
 **Response Format:**
+
 ```json
 {
   "success": true,

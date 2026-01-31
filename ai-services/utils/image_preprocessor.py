@@ -57,10 +57,7 @@ class ImagePreprocessor:
             file.seek(0)
             return True
         except Exception as e:
-          Optimize image size for faster processing
-        image = self._optimize_image_size(image)
-        
-        #   # Reset file pointer even on error
+            # Reset file pointer even on error
             try:
                 file.seek(0)
             except:
@@ -82,6 +79,9 @@ class ImagePreprocessor:
         
         # Open image from bytes
         image = Image.open(io.BytesIO(file_content))
+        
+        # Optimize image size for faster processing
+        image = self._optimize_image_size(image)
         
         # Convert to RGB if necessary
         if image.mode != 'RGB':

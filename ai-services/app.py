@@ -46,6 +46,7 @@ def predict():
     
     Expected request format:
     - Content-Type: multipart/form-data
+    """
     start_time = time.time()
     
     try:
@@ -122,11 +123,6 @@ def predict():
             },
             'model_version': prediction['model_version'],
             'processing_time': round(total_time, 3)
-                'filename': file.filename,
-                'dimensions': f"{image_info['width']}x{image_info['height']}",
-                'format': image_info['format']
-            },
-            'model_version': prediction['model_version']
         }
         
         return jsonify(response), 200

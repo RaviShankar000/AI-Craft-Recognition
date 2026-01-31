@@ -1,18 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import SpeechService from '../services/speechService';
+import { sanitizeTranscript, createSafeText } from '../utils/sanitizer';
 import './VoiceInput.css';
 
 function VoiceInput({ onTranscript, language = 'en-US' }) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState(null);
-  const [browserSupported, setBrowserSupported] = useState(false);
+  const [browserSupported] = useState(() =>
+    SpeechService.isBrowserSpeechSupported()
+  );
   const recognitionRef = useRef(null);
-
-  useEffect(() => {
-    // Check browser support
-    setBrowserSupported(SpeechService.isBrowserSpeechSupported());
-  }, []);
 
   const startListening = () => {
     if (!browserSupported) {
@@ -33,11 +31,22 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
     };
 
     recognition.onresult = (event) => {
-      const result = event.results[0][0].transcript;
-      console.log('Transcript:', result);
-      setTranscript(result);
+      const rawResult = event.results[0][0].transcript;
+      console.log('Raw transcript:', rawResult);
+
+      // Sanitize the transcript to prevent XSS
+      const sanitizedResult = sanitizeTranscript(rawResult, {
+        maxLength: 5000,
+        removeScripts: true,
+        normalizeWhitespace: true,
+        removeUrls: false,
+      });
+
+      console.log('Sanitized transcript:', sanitizedResult);
+      setTranscript(sanitizedResult);
+
       if (onTranscript) {
-        onTranscript(result);
+        onTranscript(sanitizedResult);
       }
     };
 
@@ -103,7 +112,7 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
       {transcript && (
         <div className="transcript-display">
           <div className="transcript-label">Transcript:</div>
-          <div className="transcript-text">{transcript}</div>
+          <div className="transcript-text">{createSafeText(transcript)}</div>
         </div>
       )}
 

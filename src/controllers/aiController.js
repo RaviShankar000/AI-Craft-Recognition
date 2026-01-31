@@ -7,7 +7,7 @@ const AIService = require('../services/aiService');
  */
 const predictCraft = async (req, res) => {
   const startTime = Date.now();
-  
+
   try {
     // Check if file was uploaded
     if (!req.file) {
@@ -48,7 +48,7 @@ const predictCraft = async (req, res) => {
     if (!result.success) {
       // Log error for monitoring
       console.error('AI prediction failed:', result.error, result.message);
-      
+
       return res.status(result.status || 500).json({
         success: false,
         error: result.error,
@@ -74,13 +74,6 @@ const predictCraft = async (req, res) => {
     });
   } catch (error) {
     console.error('Prediction controller error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error',
-      message: error.message,
-    });
-  }
-};
     res.status(500).json({
       success: false,
       error: 'Server error',

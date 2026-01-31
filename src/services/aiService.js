@@ -61,7 +61,7 @@ class AIService {
    */
   static async predictCraft(file) {
     const startTime = Date.now();
-    
+
     try {
       // Validate file object
       if (!file || !file.buffer) {
@@ -82,11 +82,13 @@ class AIService {
         };
       }
 
-      console.log(`Sending image to AI service: ${file.originalname} (${(file.size / 1024).toFixed(2)}KB)`);
+      console.log(
+        `Sending image to AI service: ${file.originalname} (${(file.size / 1024).toFixed(2)}KB)`
+      );
 
       // Create form data with the image file
       const formData = new FormData();
-      
+
       // Append buffer with proper metadata
       formData.append('image', file.buffer, {
         filename: file.originalname || 'image.jpg',
@@ -112,7 +114,7 @@ class AIService {
     } catch (error) {
       const duration = Date.now() - startTime;
       console.error(`AI prediction failed after ${duration}ms:`, error.message);
-      
+
       if (error.response) {
         // AI service returned an error
         return {

@@ -19,12 +19,14 @@ cd ai-services
 ### 2. Create Virtual Environment (Recommended)
 
 **macOS/Linux:**
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
 **Windows:**
+
 ```bash
 python -m venv venv
 venv\Scripts\activate
@@ -43,6 +45,7 @@ cp .env.example .env
 ```
 
 Edit `.env` file to configure:
+
 - `FLASK_ENV=development` - Enable debug mode
 - `PORT=5001` - Service port (default: 5001)
 - `MAX_CONTENT_LENGTH=16777216` - Max upload size in bytes (default: 16MB)
@@ -56,6 +59,7 @@ python app.py
 The service will start on `http://localhost:5001`
 
 You should see:
+
 ```
 Loading placeholder ML model...
 Model loaded successfully (version: 1.0.0-placeholder)
@@ -73,6 +77,7 @@ curl http://localhost:5001/health
 ```
 
 Expected response:
+
 ```json
 {
   "status": "healthy",
@@ -95,6 +100,7 @@ curl -X POST http://localhost:5001/predict \
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -110,16 +116,20 @@ Expected response:
 ## API Endpoints
 
 ### GET /health
+
 Health check endpoint for monitoring service status.
 
 **Response:**
+
 - `200 OK` - Service is healthy
 - `503 Service Unavailable` - Service has issues
 
 ### POST /predict
+
 Predict craft type from uploaded image.
 
 **Request:**
+
 - Method: `POST`
 - Content-Type: `multipart/form-data`
 - Field: `image` (file)
@@ -127,6 +137,7 @@ Predict craft type from uploaded image.
 - Max size: 16MB
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -148,6 +159,7 @@ Predict craft type from uploaded image.
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -179,12 +191,12 @@ ai-services/
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `FLASK_ENV` | `production` | Flask environment (development/production) |
-| `PORT` | `5001` | Port number for the service |
-| `MAX_CONTENT_LENGTH` | `16777216` | Maximum upload size in bytes (16MB) |
-| `MODEL_PATH` | `models/craft_classifier.h5` | Path to ML model file |
+| Variable             | Default                      | Description                                |
+| -------------------- | ---------------------------- | ------------------------------------------ |
+| `FLASK_ENV`          | `production`                 | Flask environment (development/production) |
+| `PORT`               | `5001`                       | Port number for the service                |
+| `MAX_CONTENT_LENGTH` | `16777216`                   | Maximum upload size in bytes (16MB)        |
+| `MODEL_PATH`         | `models/craft_classifier.h5` | Path to ML model file                      |
 
 ### Flask Configuration
 
@@ -207,6 +219,7 @@ python app.py
 ```
 
 Development mode enables:
+
 - Auto-reload on code changes
 - Detailed error messages
 - Debug logging
@@ -221,6 +234,7 @@ pip freeze > requirements.txt
 ### Logging
 
 The service logs to console by default. Key log outputs:
+
 - Service initialization
 - Model loading status
 - Incoming prediction requests
@@ -256,6 +270,7 @@ pip install -r requirements.txt
 ### Image Processing Errors
 
 Common issues:
+
 - **"Invalid image file"** - Corrupted or unsupported format
 - **"File too large"** - Exceeds 16MB limit
 - **PIL errors** - Install/reinstall Pillow: `pip install --upgrade Pillow`
@@ -263,6 +278,7 @@ Common issues:
 ### Connection Refused from Backend
 
 Ensure:
+
 1. AI service is running on correct port
 2. Backend `AI_SERVICE_URL` environment variable is correct
 3. CORS is properly configured
@@ -281,6 +297,7 @@ POST http://localhost:5001/predict
 ```
 
 Ensure both services are running:
+
 - AI Service: `http://localhost:5001`
 - Backend: `http://localhost:3000`
 - Frontend: `http://localhost:5173`
@@ -311,6 +328,7 @@ CMD ["python", "app.py"]
 ```
 
 Build and run:
+
 ```bash
 docker build -t ai-craft-service .
 docker run -p 5001:5001 ai-craft-service
@@ -334,20 +352,22 @@ To integrate a real ML model:
    - Implement actual prediction logic
 
 2. **Install ML dependencies:**
+
    ```bash
    pip install tensorflow  # or pytorch
    pip freeze > requirements.txt
    ```
 
 3. **Update prediction logic:**
+
    ```python
    def predict(self, image_data):
        # Preprocess image to numpy array
        img_array = preprocess_for_model(image_data)
-       
+
        # Run inference
        predictions = self.model.predict(img_array)
-       
+
        # Return formatted results
        return format_predictions(predictions)
    ```
@@ -355,12 +375,14 @@ To integrate a real ML model:
 ## Performance Optimization
 
 Current optimizations:
+
 - Image size limiting (max 1024px dimension)
 - Connection pooling (backend)
 - Response compression
 - Memory-efficient image processing
 
 For better performance:
+
 - Use GPU for inference
 - Implement model caching
 - Add request queuing
@@ -370,6 +392,7 @@ For better performance:
 ## Support
 
 For issues or questions:
+
 1. Check this documentation
 2. Review error logs
 3. Verify all dependencies are installed

@@ -1,6 +1,6 @@
 const axios = require('axios');
 const FormData = require('form-data');
-const fs = require('fs');
+const { sanitizeTranscript, validateAudioFile, sanitizeFilename } = require('../utils/sanitizer');
 
 /**
  * Speech-to-Text Service
@@ -35,7 +35,7 @@ class SpeechToTextService {
         contentType: 'audio/wav',
       });
       formData.append('model', 'whisper-1');
-      
+
       if (language) {
         formData.append('language', language);
       }
@@ -58,10 +58,17 @@ class SpeechToTextService {
       const duration = Date.now() - startTime;
       console.log(`Whisper transcription completed in ${duration}ms`);
 
+      // Sanitize the transcript
+      const sanitizedText = sanitizeTranscript(response.data.text, {
+        maxLength: 5000,
+        removeScripts: true,
+        normalizeWhitespace: true,
+      });
+
       return {
         success: true,
         data: {
-          text: response.data.text,
+          text: sanitizedText,
           provider: 'whisper',
           language: language || 'auto',
           duration: duration / 1000,
@@ -122,14 +129,19 @@ class SpeechToTextService {
       console.log(`Google STT completed in ${duration}ms`);
 
       const results = response.data.results || [];
-      const transcript = results
-        .map((result) => result.alternatives[0]?.transcript || '')
-        .join(' ');
+      const transcript = results.map(result => result.alternatives[0]?.transcript || '').join(' ');
+
+      // Sanitize the transcript
+      const sanitizedText = sanitizeTranscript(transcript, {
+        maxLength: 5000,
+        removeScripts: true,
+        normalizeWhitespace: true,
+      });
 
       return {
         success: true,
         data: {
-          text: transcript,
+          text: sanitizedText,
           provider: 'google',
           language: language,
           confidence: results[0]?.alternatives[0]?.confidence || 0,
@@ -154,8 +166,25 @@ class SpeechToTextService {
    * @returns {Promise} Transcription result
    */
   async transcribe(audioBuffer, filename, language = null) {
+    // Validate audio file
+    const validation = validateAudioFile(
+      { buffer: audioBuffer, size: audioBuffer.length },
+      { maxSize: 25 * 1024 * 1024 }
+    );
+
+    if (!validation.valid) {
+      return {
+        success: false,
+        error: 'Validation failed',
+        message: validation.errors.join(', '),
+      };
+    }
+
+    // Sanitize filename
+    const safeFilename = sanitizeFilename(filename);
+
     if (this.provider === 'whisper') {
-      return this.transcribeWithWhisper(audioBuffer, filename, language);
+      return this.transcribeWithWhisper(audioBuffer, safeFilename, language);
     } else if (this.provider === 'google') {
       return this.transcribeWithGoogle(audioBuffer, language || 'en-US');
     } else {

@@ -140,6 +140,7 @@ python app.py
 The AI service will start on `http://localhost:5001`.
 
 **Verify it's running:**
+
 ```bash
 curl http://localhost:5001/health
 ```
@@ -325,6 +326,7 @@ npm test
 ### AI Service Issues
 
 **Port already in use:**
+
 ```bash
 # Find process using port 5001
 lsof -i :5001  # macOS/Linux
@@ -335,6 +337,7 @@ PORT=5002 python app.py
 ```
 
 **Module not found:**
+
 ```bash
 # Ensure virtual environment is activated
 source venv/bin/activate
@@ -344,11 +347,13 @@ pip install -r requirements.txt
 ### Backend Issues
 
 **MongoDB connection failed:**
+
 - Ensure MongoDB is running
 - Check `MONGODB_URI` in `.env`
 - Verify network connectivity
 
 **AI service unavailable:**
+
 - Ensure AI service is running on port 5001
 - Check `AI_SERVICE_URL` in backend `.env`
 - Verify firewall settings
@@ -356,6 +361,7 @@ pip install -r requirements.txt
 ### Frontend Issues
 
 **Cannot connect to backend:**
+
 - Ensure backend is running on port 3000
 - Check `VITE_API_URL` in frontend `.env`
 - Verify CORS settings
