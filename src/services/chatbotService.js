@@ -46,6 +46,66 @@ class ChatbotService {
           jewelry: ['metalsmithing', 'beading', 'wire wrapping', 'stone setting'],
         },
       },
+      indianCrafts: {
+        types: [
+          'Madhubani Painting',
+          'Warli Art',
+          'Pattachitra',
+          'Tanjore Painting',
+          'Blue Pottery',
+          'Terracotta',
+          'Bandhani (Tie-Dye)',
+          'Kalamkari',
+          'Ikat Weaving',
+          'Pashmina Weaving',
+          'Zardozi Embroidery',
+          'Chikankari',
+          'Kantha Stitch',
+          'Phulkari',
+          'Dhokra Metal Casting',
+          'Bidriware',
+          'Meenakari',
+          'Kundan Jewelry',
+          'Sandalwood Carving',
+          'Rosewood Inlay',
+        ],
+        regions: {
+          Bihar: ['Madhubani Painting', 'Sikki Grass Work'],
+          Maharashtra: ['Warli Art', 'Paithani Sarees'],
+          Odisha: ['Pattachitra', 'Silver Filigree', 'Sambalpuri Ikat'],
+          'Tamil Nadu': ['Tanjore Painting', 'Kanchipuram Silk', 'Bronze Casting'],
+          Rajasthan: ['Blue Pottery', 'Bandhani', 'Meenakari', 'Block Printing'],
+          'West Bengal': ['Kantha Stitch', 'Baluchari Weaving', 'Terracotta'],
+          Gujarat: ['Bandhani', 'Patola Silk', 'Rogan Art'],
+          Kashmir: ['Pashmina Weaving', 'Paper Mache', 'Walnut Wood Carving'],
+          'Uttar Pradesh': ['Chikankari', 'Zardozi', 'Brassware'],
+          Punjab: ['Phulkari', 'Punjabi Jutti'],
+          Karnataka: ['Mysore Silk', 'Sandalwood Carving', 'Bidriware'],
+          Telangana: ['Bidriware', 'Pochampally Ikat'],
+        },
+        culturalSignificance: {
+          'Madhubani Painting':
+            'Ancient art form from Bihar, traditionally created by women depicting Hindu deities and nature. Each painting tells a story from mythology or daily life.',
+          'Warli Art':
+            'Tribal art from Maharashtra using geometric patterns to depict daily life, harvest, and celebrations. Dates back to 10th century AD.',
+          Pattachitra:
+            'Classical art from Odisha depicting Hindu mythology, especially Lord Jagannath. Uses natural colors and follows strict iconographic traditions.',
+          'Blue Pottery':
+            'Persian-influenced craft from Rajasthan using Egyptian blue dye. Known for its distinctive turquoise color and floral patterns.',
+          Bandhani:
+            'Ancient tie-dye technique from Gujarat and Rajasthan. Worn during festivals and weddings, symbolizing joy and celebration.',
+          Kalamkari:
+            'Hand-painted cotton textiles from Andhra Pradesh depicting mythological stories. Name means "pen work" in Persian.',
+          Chikankari:
+            'Delicate white thread embroidery from Lucknow, Uttar Pradesh. Originated during Mughal era, symbolizing elegance and royalty.',
+          'Dhokra Metal Casting':
+            'Ancient lost-wax casting technique used by tribal artisans. Creates unique brass and bronze figurines and jewelry.',
+          Pashmina:
+            'Luxurious wool from Kashmir, woven from fine cashmere. Represents warmth, luxury, and Kashmiri heritage.',
+          Zardozi:
+            'Royal embroidery using gold and silver threads. Adorned Mughal royal garments and symbolizes opulence.',
+        },
+      },
       app: {
         features: [
           'AI craft recognition',
@@ -69,6 +129,8 @@ class ChatbotService {
       greeting: /^(hi|hello|hey|greetings|good\s*(morning|afternoon|evening))/i,
       help: /\b(help|assist|support|guide|how\s*to)\b/i,
       craftInfo: /\b(what|tell|about|explain|describe)\b.*\b(craft|pottery|weaving|woodwork)/i,
+      indianCraft:
+        /\b(indian|india|madhubani|warli|pattachitra|bandhani|kalamkari|chikankari|zardozi|pashmina|dhokra|bidriware|meenakari|kundan|rajasthan|kashmir|bihar|odisha|gujarat)\b/i,
       cultural:
         /\b(culture|cultural|tradition|traditional|history|historical|origin|heritage|significance|meaning|symbol|ritual|ceremony|art\s*form)\b/i,
       features: /\b(feature|capability|can\s*you|what\s*can|functionality)\b/i,
@@ -102,16 +164,33 @@ class ChatbotService {
         };
       }
 
-      const systemPrompt = `You are a knowledgeable expert on traditional crafts from around the world. 
-You provide detailed, accurate information about the cultural significance, history, and traditions of various crafts.
+      const systemPrompt = `You are a knowledgeable expert on traditional crafts from around the world, with specialized expertise in Indian handicrafts and artisan traditions.
+
+You provide detailed, accurate information about the cultural significance, history, and traditions of various crafts, especially Indian crafts.
+
 Focus on:
-- Cultural and historical context
+- Cultural and historical context, especially for Indian crafts
 - Traditional techniques and their origins
 - Symbolism and meaning in different cultures
-- Regional variations and heritage
-- Modern preservation efforts
+- Regional variations and heritage across Indian states
+- Modern preservation efforts and government initiatives (like GI tags)
+- The role of artisan communities and their hereditary knowledge
+- Connection to festivals, rituals, and daily life
+- Materials used and their significance
 
-Keep responses informative but concise (2-3 paragraphs max). Be respectful of all cultures and traditions.`;
+For Indian crafts specifically, emphasize:
+- State/region of origin and distinctive characteristics
+- Historical patronage (Mughal, royal courts, temple traditions)
+- UNESCO recognition and Geographical Indication status
+- Contemporary relevance and market presence
+- Master artisans and their contributions
+- Revival and sustainability efforts
+
+Indian Craft Context:
+${this.getIndianCraftContext()}
+
+Keep responses informative but concise (2-3 paragraphs max). Be respectful of all cultures and traditions.
+Use engaging language that celebrates the artistry and cultural heritage.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
@@ -147,6 +226,31 @@ Keep responses informative but concise (2-3 paragraphs max). Be respectful of al
         error: true,
       };
     }
+  }
+
+  /**
+   * Get Indian craft context for LLM prompt
+   * @returns {String} Formatted Indian craft information
+   */
+  getIndianCraftContext() {
+    const indianCrafts = this.knowledgeBase.indianCrafts;
+    let context = 'Notable Indian Crafts:\n';
+
+    // Add craft types
+    context += indianCrafts.types.slice(0, 10).join(', ') + '\n\n';
+
+    // Add key regional information
+    context += 'Key Regions:\n';
+    const regionExamples = [
+      'Bihar: Madhubani Painting',
+      'Rajasthan: Blue Pottery, Bandhani',
+      'Odisha: Pattachitra',
+      'Kashmir: Pashmina Weaving',
+      'Uttar Pradesh: Chikankari, Zardozi',
+    ];
+    context += regionExamples.join('\n');
+
+    return context;
   }
 
   /**
@@ -192,6 +296,16 @@ Keep responses informative but concise (2-3 paragraphs max). Be respectful of al
       craftInfo: {
         text: `I can recognize and help you with these craft types:\n\n${this.knowledgeBase.crafts.types.join(', ')}\n\nEach craft has unique characteristics and techniques. Would you like to know more about a specific craft?`,
         suggestions: ['Pottery techniques', 'Weaving materials', 'Woodworking tools'],
+      },
+
+      indianCraft: {
+        text: `🇮🇳 **Indian Handicrafts** - A Rich Cultural Heritage!\n\nI have extensive knowledge about traditional Indian crafts:\n\n${this.knowledgeBase.indianCrafts.types.slice(0, 8).join(', ')}, and many more!\n\nEach craft represents centuries of tradition, regional identity, and artisan excellence. Ask me about any Indian craft's cultural significance, history, or techniques!`,
+        suggestions: [
+          'Tell me about Madhubani art',
+          'History of Pashmina',
+          'Rajasthani crafts',
+          'Bengali artisan traditions',
+        ],
       },
 
       cultural: {
@@ -273,12 +387,12 @@ Keep responses informative but concise (2-3 paragraphs max). Be respectful of al
     // Detect intent
     const intent = this.detectIntent(sanitizedMessage);
 
-    // If cultural question detected, use LLM
-    if (intent === 'cultural') {
+    // If cultural or Indian craft question detected, use LLM
+    if (intent === 'cultural' || intent === 'indianCraft') {
       const llmResponse = await this.answerCulturalQuestion(sanitizedMessage);
       return {
         ...llmResponse,
-        intent: 'cultural',
+        intent,
         timestamp: new Date().toISOString(),
       };
     }
