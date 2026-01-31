@@ -62,6 +62,24 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    moderationStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+      index: true,
+    },
+    moderationNote: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Moderation note cannot exceed 500 characters'],
+    },
+    moderatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    moderatedAt: {
+      type: Date,
+    },
     sku: {
       type: String,
       unique: true,
@@ -93,6 +111,8 @@ productSchema.index({ user: 1, isAvailable: 1 });
 productSchema.index({ craft: 1, isAvailable: 1 });
 productSchema.index({ price: 1 });
 productSchema.index({ name: 'text', description: 'text' });
+productSchema.index({ moderationStatus: 1 });
+productSchema.index({ moderatedBy: 1 });
 
 // Virtual for final price after discount
 productSchema.virtual('finalPrice').get(function () {
@@ -149,6 +169,20 @@ productSchema.methods.increaseStock = function (quantity) {
 // Static method to find available products
 productSchema.statics.findAvailable = function () {
   return this.find({ isAvailable: true, stock: { $gt: 0 } });
+};
+
+// Method to update moderation status
+productSchema.methods.updateModerationStatus = function (status, moderatorId, note = '') {
+  this.moderationStatus = status;
+  this.moderatedBy = moderatorId;
+  this.moderatedAt = new Date();
+  this.moderationNote = note;
+  return this.save();
+};
+
+// Static method to find pending products for moderation
+productSchema.statics.findPendingModeration = function () {
+  return this.find({ moderationStatus: 'pending' }).sort({ createdAt: -1 });
 };
 
 const Product = mongoose.model('Product', productSchema);

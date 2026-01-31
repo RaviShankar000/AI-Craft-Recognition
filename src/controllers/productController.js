@@ -4,7 +4,10 @@ const Craft = require('../models/Craft');
 /**
  * Get all products
  * @route GET /api/products
- * @access Private
+ * @access Public/Private (Public shows only approved, Private shows user's own)
+ * @description 
+ * - Public access: Returns only approved products for marketplace viewing
+ * - Authenticated access: Returns user's own products (all statuses)
  */
 const getAllProducts = async (req, res) => {
   try {
@@ -20,8 +23,8 @@ const getAllProducts = async (req, res) => {
       sort = '-createdAt',
     } = req.query;
 
-    // Build query
-    const query = { user: req.user._id };
+    // Build query - if user is authenticated, show their products; otherwise show approved only
+    const query = req.user ? { user: req.user._id } : { moderationStatus: 'approved' };
 
     // Filter by craft
     if (craft) {
@@ -411,17 +414,15 @@ const updateProductStock = async (req, res) => {
 /**
  * Get products by craft
  * @route GET /api/products/craft/:craftId
- * @access Private
+ * @access Public
+ * @description Returns only approved products for the specified craft
  */
 const getProductsByCraft = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
-    // Verify craft exists and belongs to user
-    const craft = await Craft.findOne({
-      _id: req.params.craftId,
-      user: req.user._id,
-    });
+    // Verify craft exists
+    const craft = await Craft.findById(req.params.craftId);
 
     if (!craft) {
       return res.status(404).json({
@@ -433,12 +434,13 @@ const getProductsByCraft = async (req, res) => {
     // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Find products
+    // Find only approved products
     const products = await Product.find({
       craft: req.params.craftId,
-      user: req.user._id,
+      moderationStatus: 'approved',
     })
       .populate('craft', 'name state category')
+      .populate('user', 'name')
       .sort('-createdAt')
       .skip(skip)
       .limit(parseInt(limit))
@@ -446,7 +448,7 @@ const getProductsByCraft = async (req, res) => {
 
     const total = await Product.countDocuments({
       craft: req.params.craftId,
-      user: req.user._id,
+      moderationStatus: 'approved',
     });
 
     res.status(200).json({
@@ -479,4 +481,172 @@ module.exports = {
   deleteProduct,
   updateProductStock,
   getProductsByCraft,
+};
+
+/**
+ * ============================================================================
+ * PRODUCT MODERATION ENDPOINTS (Admin Only)
+ * ============================================================================
+ */
+
+/**
+ * Get all products pending moderation
+ * @route GET /api/products/moderation/pending
+ * @access Private/Admin
+ */
+const getPendingProducts = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const query = { moderationStatus: 'pending' };
+    
+    const products = await Product.find(query)
+      .populate('user', 'name email')
+      .populate('craft', 'name')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(skip);
+
+    const total = await Product.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      data: products,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Approve a product
+ * @route PATCH /api/products/:id/approve
+ * @access Private/Admin
+ */
+const approveProduct = async (req, res) => {
+  try {
+    const { note } = req.body;
+    
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found',
+      });
+    }
+
+    await product.updateModerationStatus('approved', req.user.id, note);
+
+    res.status(200).json({
+      success: true,
+      message: 'Product approved successfully',
+      data: product,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Reject a product
+ * @route PATCH /api/products/:id/reject
+ * @access Private/Admin
+ */
+const rejectProduct = async (req, res) => {
+  try {
+    const { note } = req.body;
+
+    if (!note) {
+      return res.status(400).json({
+        success: false,
+        error: 'Rejection note is required',
+      });
+    }
+
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found',
+      });
+    }
+
+    await product.updateModerationStatus('rejected', req.user.id, note);
+
+    res.status(200).json({
+      success: true,
+      message: 'Product rejected successfully',
+      data: product,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get moderation statistics
+ * @route GET /api/products/moderation/stats
+ * @access Private/Admin
+ */
+const getModerationStats = async (req, res) => {
+  try {
+    const stats = await Product.aggregate([
+      {
+        $group: {
+          _id: '$moderationStatus',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const statsMap = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+    };
+
+    stats.forEach(stat => {
+      statsMap[stat._id] = stat.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: statsMap,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  getAllProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  updateProductStock,
+  getProductsByCraft,
+  getPendingProducts,
+  approveProduct,
+  rejectProduct,
+  getModerationStats,
 };

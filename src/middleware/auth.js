@@ -287,15 +287,90 @@ const authorize = (...roles) => {
 };
 
 /**
+ * OPTIONAL AUTH MIDDLEWARE
+ * =========================
+ * Attempts to authenticate user but allows request to proceed even if no token.
+ * Useful for routes that show different content for authenticated vs public users.
+ * 
+ * @middleware
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @description
+ * - If token exists, verifies it and attaches user to req.user
+ * - If no token or invalid token, continues without authentication
+ * - Route handler can check if req.user exists to determine authentication
+ * 
+ * @example
+ * router.get('/products', optionalAuth, (req, res) => {
+ *   if (req.user) {
+ *     // Show user's private products
+ *   } else {
+ *     // Show only public products
+ *   }
+ * });
+ */
+const optionalAuth = async (req, res, next) => {
+  try {
+    let token;
+
+    // Check for token in Authorization header
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    // If no token, proceed without authentication
+    if (!token) {
+      return next();
+    }
+
+    // Try to verify token
+    try {
+      const decoded = verifyToken(token);
+      
+      // Find user by id from token
+      const user = await User.findById(decoded.id);
+
+      // If user exists and is active, attach to request
+      if (user && user.isActive) {
+        req.user = {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          role: decoded.role || user.role,
+          isActive: user.isActive,
+        };
+        
+        console.log('[AUTH DEBUG] Optional auth - User authenticated:', {
+          userId: req.user.id,
+          email: req.user.email,
+          role: req.user.role,
+        });
+      }
+    } catch (error) {
+      // If token verification fails, just continue without auth
+      console.log('[AUTH DEBUG] Optional auth - Token verification failed, proceeding as public');
+    }
+
+    next();
+  } catch (error) {
+    // On any error, proceed without authentication
+    next();
+  }
+};
+
+/**
  * EXPORTS
  * =======
- * Export both middleware functions for use in route definitions.
+ * Export middleware functions for use in route definitions.
  * 
  * @exports protect - Authentication middleware (verifies JWT)
  * @exports authorize - Authorization middleware factory (checks roles)
+ * @exports optionalAuth - Optional authentication (allows public access)
  * 
  * @example Import and use in routes:
- * const { protect, authorize } = require('../middleware/auth');
+ * const { protect, authorize, optionalAuth } = require('../middleware/auth');
  * 
  * // Public route - no middleware
  * router.get('/public', publicHandler);
@@ -305,8 +380,12 @@ const authorize = (...roles) => {
  * 
  * // Role-restricted route - protect + authorize
  * router.delete('/admin', protect, authorize('admin'), adminHandler);
+ * 
+ * // Optional auth - different content for auth/public users
+ * router.get('/products', optionalAuth, productsHandler);
  */
 module.exports = {
   protect,
   authorize,
+  optionalAuth,
 };
