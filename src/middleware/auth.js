@@ -25,6 +25,12 @@ const protect = async (req, res, next) => {
     // Verify token
     try {
       const decoded = verifyToken(token);
+      console.log('[AUTH DEBUG] Token verified successfully:', {
+        userId: decoded.id,
+        email: decoded.email,
+        role: decoded.role,
+        timestamp: new Date().toISOString()
+      });
 
       // Find user by id from token
       const user = await User.findById(decoded.id);
@@ -52,6 +58,14 @@ const protect = async (req, res, next) => {
         role: decoded.role || user.role, // Use role from JWT token, fallback to user model
         isActive: user.isActive,
       };
+      
+      console.log('[AUTH DEBUG] User authenticated and attached to request:', {
+        userId: req.user.id,
+        email: req.user.email,
+        role: req.user.role,
+        route: req.originalUrl,
+        method: req.method
+      });
       
       next();
     } catch (error) {
@@ -91,7 +105,16 @@ const protect = async (req, res, next) => {
  */
 const authorize = (...roles) => {
   return (req, res, next) => {
+    console.log('[AUTH DEBUG] Authorization check initiated:', {
+      userId: req.user?.id,
+      userRole: req.user?.role,
+      requiredRoles: roles,
+      route: req.originalUrl,
+      method: req.method
+    });
+
     if (!req.user) {
+      console.log('[AUTH DEBUG] Authorization failed: No user attached to request');
       return res.status(401).json({
         success: false,
         error: 'Not authenticated.',
@@ -99,12 +122,23 @@ const authorize = (...roles) => {
     }
 
     if (!roles.includes(req.user.role)) {
+      console.log('[AUTH DEBUG] Authorization denied:', {
+        userId: req.user.id,
+        userRole: req.user.role,
+        requiredRoles: roles,
+        reason: 'User role not in allowed roles'
+      });
       return res.status(403).json({
         success: false,
         error: `User role '${req.user.role}' is not authorized to access this route.`,
       });
     }
 
+    console.log('[AUTH DEBUG] Authorization granted:', {
+      userId: req.user.id,
+      userRole: req.user.role,
+      allowedRoles: roles
+    });
     next();
   };
 };
