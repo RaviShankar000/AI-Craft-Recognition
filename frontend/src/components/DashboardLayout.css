@@ -62,12 +62,22 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .dashboard-container {
+    padding-top: 56px;
+  }
+  
   .dashboard-main.sidebar-open,
   .dashboard-main.sidebar-closed {
     margin-left: 0;
   }
 
   .dashboard-content {
-    padding: 20px 16px;
+    padding: 16px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-content {
+    padding: 12px 8px;
   }
 }

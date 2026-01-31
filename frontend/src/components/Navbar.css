@@ -243,7 +243,12 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .navbar {
-    padding: 0 16px;
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .navbar-left {
+    gap: 12px;
   }
 
   .navbar-center {
@@ -251,6 +256,41 @@
   }
 
   .navbar-title {
-    font-size: 18px;
+    font-size: 17px;
+    letter-spacing: -0.3px;
+  }
+
+  .navbar-right {
+    gap: 8px;
+  }
+  
+  .icon-button,
+  .menu-toggle {
+    padding: 8px;
+  }
+  
+  .user-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+  
+  .dropdown-menu {
+    right: -8px;
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0 8px;
+  }
+  
+  .navbar-title {
+    font-size: 15px;
+  }
+  
+  .navbar-right {
+    gap: 4px;
   }
 }
