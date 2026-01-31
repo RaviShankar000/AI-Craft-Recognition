@@ -21,6 +21,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Routes
+const authRoutes = require('./src/routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 // Basic route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to AI Craft Recognition API' });
