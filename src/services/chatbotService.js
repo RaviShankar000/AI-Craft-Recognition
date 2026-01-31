@@ -1,10 +1,15 @@
 const { sanitizeText } = require('../utils/sanitizer');
+const OpenAI = require('openai');
 
 /**
  * Chatbot Service - Handles AI-powered conversations about crafts
  */
 class ChatbotService {
   constructor() {
+    // Initialize OpenAI client
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
     // Knowledge base about crafts
     this.knowledgeBase = {
       crafts: {
@@ -64,6 +69,8 @@ class ChatbotService {
       greeting: /^(hi|hello|hey|greetings|good\s*(morning|afternoon|evening))/i,
       help: /\b(help|assist|support|guide|how\s*to)\b/i,
       craftInfo: /\b(what|tell|about|explain|describe)\b.*\b(craft|pottery|weaving|woodwork)/i,
+      cultural:
+        /\b(culture|cultural|tradition|traditional|history|historical|origin|heritage|significance|meaning|symbol|ritual|ceremony|art\s*form)\b/i,
       features: /\b(feature|capability|can\s*you|what\s*can|functionality)\b/i,
       upload: /\b(upload|add|submit|post)\b.*\b(image|photo|picture|craft)/i,
       search: /\b(search|find|look\s*for|locate)\b.*\b(craft|item)/i,
@@ -74,6 +81,72 @@ class ChatbotService {
       thanks: /^(thank|thanks|appreciate|grateful)/i,
       goodbye: /^(bye|goodbye|see\s*you|farewell|exit|quit)/i,
     };
+  }
+
+  /**
+   * Use LLM to answer cultural questions about crafts
+   * @param {String} question - User's cultural question
+   * @returns {Object} Response object with LLM-generated answer
+   */
+  async answerCulturalQuestion(question) {
+    try {
+      // Check if API key is configured
+      if (
+        !process.env.OPENAI_API_KEY ||
+        process.env.OPENAI_API_KEY === 'your-openai-api-key-here'
+      ) {
+        return {
+          text: "I'd love to answer cultural questions about crafts, but the OpenAI API key is not configured. Please set up the OPENAI_API_KEY in your environment variables to enable this feature.\n\nIn the meantime, I can still help you with:\n• Craft recognition\n• Voice search\n• Uploading and managing crafts\n• Learning about craft types and techniques",
+          suggestions: ['Show features', 'Upload craft', 'Voice search'],
+          usedLLM: false,
+        };
+      }
+
+      const systemPrompt = `You are a knowledgeable expert on traditional crafts from around the world. 
+You provide detailed, accurate information about the cultural significance, history, and traditions of various crafts.
+Focus on:
+- Cultural and historical context
+- Traditional techniques and their origins
+- Symbolism and meaning in different cultures
+- Regional variations and heritage
+- Modern preservation efforts
+
+Keep responses informative but concise (2-3 paragraphs max). Be respectful of all cultures and traditions.`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: question },
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      });
+
+      const answer = completion.choices[0].message.content;
+
+      return {
+        text: answer,
+        suggestions: [
+          'Tell me more',
+          'Other cultural crafts',
+          'Traditional techniques',
+          'Back to main features',
+        ],
+        usedLLM: true,
+        model: 'gpt-3.5-turbo',
+      };
+    } catch (error) {
+      console.error('Error calling OpenAI API:', error.message);
+
+      // Fallback response
+      return {
+        text: `I encountered an issue accessing cultural information: ${error.message}\n\nI can still help you with other features like craft recognition, voice search, and craft management. Would you like to explore those?`,
+        suggestions: ['Show features', 'Upload craft', 'How to use app'],
+        usedLLM: false,
+        error: true,
+      };
+    }
   }
 
   /**
@@ -119,6 +192,15 @@ class ChatbotService {
       craftInfo: {
         text: `I can recognize and help you with these craft types:\n\n${this.knowledgeBase.crafts.types.join(', ')}\n\nEach craft has unique characteristics and techniques. Would you like to know more about a specific craft?`,
         suggestions: ['Pottery techniques', 'Weaving materials', 'Woodworking tools'],
+      },
+
+      cultural: {
+        text: "I can provide detailed information about the cultural significance and history of various crafts using AI. Please ask your specific cultural question, and I'll give you a comprehensive answer!",
+        suggestions: [
+          'Cultural significance of pottery',
+          'History of weaving traditions',
+          'Traditional jewelry symbolism',
+        ],
       },
 
       upload: {
@@ -191,7 +273,17 @@ class ChatbotService {
     // Detect intent
     const intent = this.detectIntent(sanitizedMessage);
 
-    // Generate response
+    // If cultural question detected, use LLM
+    if (intent === 'cultural') {
+      const llmResponse = await this.answerCulturalQuestion(sanitizedMessage);
+      return {
+        ...llmResponse,
+        intent: 'cultural',
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // Generate response using pattern matching for other intents
     const response = this.generateResponse(intent, sanitizedMessage);
 
     // Add metadata
