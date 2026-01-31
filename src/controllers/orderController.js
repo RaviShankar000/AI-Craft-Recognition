@@ -1,6 +1,61 @@
 const Order = require('../models/Order');
 
 /**
+ * Helper: Handle database errors
+ */
+const handleDbError = (error, res) => {
+  if (error.name === 'CastError') {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid ID format',
+    });
+  }
+
+  if (error.name === 'ValidationError') {
+    const messages = Object.values(error.errors).map(err => err.message);
+    return res.status(400).json({
+      success: false,
+      error: messages.join(', '),
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    error: error.message,
+  });
+};
+
+/**
+ * Helper: Calculate estimated delivery date
+ */
+const getEstimatedDelivery = (createdAt, daysToAdd = 7) => {
+  const deliveryDate = new Date(createdAt);
+  deliveryDate.setDate(deliveryDate.getDate() + daysToAdd);
+  return deliveryDate;
+};
+
+/**
+ * Helper: Build pagination data
+ */
+const buildPaginationData = (page, limit, total, data) => ({
+  success: true,
+  count: data.length,
+  total,
+  page: parseInt(page),
+  pages: Math.ceil(total / parseInt(limit)),
+  data,
+});
+
+/**
+ * Helper: Common order population
+ */
+const populateOrderDetails = query => {
+  return query
+    .populate('items.product', 'name price stock')
+    .populate('items.craft', 'name state category');
+};
+
+/**
  * Get all user orders
  * @route GET /api/orders
  * @access Private
@@ -9,41 +64,21 @@ const getAllOrders = async (req, res) => {
   try {
     const { status, page = 1, limit = 10, sort = '-createdAt' } = req.query;
 
-    // Build query
     const query = { user: req.user._id };
+    if (status) query.status = status;
 
-    // Filter by status if provided
-    if (status) {
-      query.status = status;
-    }
-
-    // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Execute query
-    const orders = await Order.find(query)
-      .populate('items.product', 'name price')
-      .populate('items.craft', 'name state')
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .select('-__v');
+    const [orders, total] = await Promise.all([
+      populateOrderDetails(
+        Order.find(query).sort(sort).skip(skip).limit(parseInt(limit)).select('-__v')
+      ),
+      Order.countDocuments(query),
+    ]);
 
-    const total = await Order.countDocuments(query);
-
-    res.status(200).json({
-      success: true,
-      count: orders.length,
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / parseInt(limit)),
-      data: orders,
-    });
+    res.status(200).json(buildPaginationData(page, limit, total, orders));
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    handleDbError(error, res);
   }
 };
 
@@ -54,12 +89,12 @@ const getAllOrders = async (req, res) => {
  */
 const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    })
-      .populate('items.product', 'name price stock')
-      .populate('items.craft', 'name state category');
+    const order = await populateOrderDetails(
+      Order.findOne({
+        _id: req.params.id,
+        user: req.user._id,
+      })
+    );
 
     if (!order) {
       return res.status(404).json({
@@ -73,16 +108,7 @@ const getOrderById = async (req, res) => {
       data: order,
     });
   } catch (error) {
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid order ID',
-      });
-    }
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    handleDbError(error, res);
   }
 };
 
@@ -123,10 +149,7 @@ const trackOrder = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    handleDbError(error, res);
   }
 };
 
@@ -139,7 +162,7 @@ const cancelOrder = async (req, res) => {
   try {
     const { reason } = req.body;
 
-    if (!reason) {
+    if (!reason || !reason.trim()) {
       return res.status(400).json({
         success: false,
         error: 'Cancellation reason is required',
@@ -158,7 +181,7 @@ const cancelOrder = async (req, res) => {
       });
     }
 
-    await order.cancelOrder(reason);
+    await order.cancelOrder(reason.trim());
 
     res.status(200).json({
       success: true,
@@ -177,18 +200,7 @@ const cancelOrder = async (req, res) => {
         error: error.message,
       });
     }
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid order ID',
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    handleDbError(error, res);
   }
 };
 
@@ -206,10 +218,7 @@ const getOrderStats = async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    handleDbError(error, res);
   }
 };
 
@@ -250,24 +259,7 @@ const updateOrderStatus = async (req, res) => {
       },
     });
   } catch (error) {
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-      });
-    }
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid order ID',
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    handleDbError(error, res);
   }
 };
 
@@ -280,57 +272,39 @@ const getAllOrdersAdmin = async (req, res) => {
   try {
     const { status, user, page = 1, limit = 20, sort = '-createdAt' } = req.query;
 
-    // Build query
     const query = {};
+    if (status) query.status = status;
+    if (user) query.user = user;
 
-    if (status) {
-      query.status = status;
-    }
-
-    if (user) {
-      query.user = user;
-    }
-
-    // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Execute query
-    const orders = await Order.find(query)
-      .populate('user', 'name email')
-      .populate('items.product', 'name price')
-      .populate('items.craft', 'name state')
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .select('-__v');
-
-    const total = await Order.countDocuments(query);
-
-    // Get order statistics
-    const statusCounts = await Order.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-          totalAmount: { $sum: '$totalAmount' },
+    const [orders, total, statusCounts] = await Promise.all([
+      Order.find(query)
+        .populate('user', 'name email')
+        .populate('items.product', 'name price')
+        .populate('items.craft', 'name state')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select('-__v'),
+      Order.countDocuments(query),
+      Order.aggregate([
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+            totalAmount: { $sum: '$totalAmount' },
+          },
         },
-      },
+      ]),
     ]);
 
     res.status(200).json({
-      success: true,
-      count: orders.length,
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / parseInt(limit)),
+      ...buildPaginationData(page, limit, total, orders),
       statistics: statusCounts,
-      data: orders,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    handleDbError(error, res);
   }
 };
 
@@ -358,26 +332,8 @@ const deleteOrder = async (req, res) => {
       data: {},
     });
   } catch (error) {
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid order ID',
-      });
-    }
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    handleDbError(error, res);
   }
-};
-
-/**
- * Helper function to calculate estimated delivery
- */
-const getEstimatedDelivery = createdAt => {
-  const deliveryDate = new Date(createdAt);
-  deliveryDate.setDate(deliveryDate.getDate() + 7); // 7 days from order
-  return deliveryDate;
 };
 
 module.exports = {
