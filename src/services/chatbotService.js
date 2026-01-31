@@ -10,6 +10,23 @@ class ChatbotService {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+
+    // Performance optimization: Response cache for frequently asked questions
+    this.responseCache = new Map();
+    this.maxCacheSize = 100;
+
+    // Performance optimization: Cache for static responses
+    this.staticResponseCache = new Map();
+
+    // Response cache for frequently asked questions (LRU cache with max 100 entries)
+    this.responseCache = new Map();
+    this.maxCacheSize = 100;
+
+    // Pre-compile intent patterns for faster matching
+    this.compiledIntentPatterns = null;
+
+    // Cache for formatted responses (avoid regenerating static responses)
+    this.staticResponseCache = new Map();
     // Knowledge base about crafts
     this.knowledgeBase = {
       crafts: {
@@ -143,6 +160,69 @@ class ChatbotService {
       thanks: /^(thank|thanks|appreciate|grateful)/i,
       goodbye: /^(bye|goodbye|see\s*you|farewell|exit|quit)/i,
     };
+
+    // Performance optimization: Priority order for intent checking (most common first)
+    this.intentPriority = [
+      'greeting',
+      'help',
+      'thanks',
+      'goodbye',
+      'features',
+      'upload',
+      'indianCraft',
+      'craftInfo',
+      'cultural',
+      'search',
+      'voiceSearch',
+      'materials',
+      'techniques',
+      'categories',
+    ];
+  }
+
+  /**
+   * Add response to cache with LRU eviction
+   * @param {String} key - Cache key
+   * @param {Object} value - Response to cache
+   */
+  addToCache(key, value) {
+    // Remove oldest entry if cache is full
+    if (this.responseCache.size >= this.maxCacheSize) {
+      const firstKey = this.responseCache.keys().next().value;
+      this.responseCache.delete(firstKey);
+    }
+
+    // Add to cache (most recent)
+    this.responseCache.set(key, {
+      response: value,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Get response from cache
+   * @param {String} key - Cache key
+   * @returns {Object|null} Cached response or null
+   */
+  getFromCache(key) {
+    const cached = this.responseCache.get(key);
+    if (cached) {
+      // Move to end (most recently used)
+      this.responseCache.delete(key);
+      this.responseCache.set(key, cached);
+      return cached.response;
+    }
+    return null;
+  }
+
+  /**
+   * Generate cache key for message
+   * @param {String} message - User message
+   * @param {String} intent - Detected intent
+   * @returns {String} Cache key
+   */
+  generateCacheKey(message, intent) {
+    return `${intent}:${message.toLowerCase().trim().substring(0, 100)}`;
   }
 
   /**
@@ -445,15 +525,17 @@ Use engaging language that celebrates the artistry and cultural heritage.`;
   }
 
   /**
-   * Detect intent from user message
+   * Detect intent from user message (optimized with priority ordering)
    * @param {String} message - User message
    * @returns {String} Detected intent
    */
   detectIntent(message) {
-    const lowerMessage = message.toLowerCase().trim();
+    const lowerMessage = message.toLowerCase();
 
-    for (const [intent, pattern] of Object.entries(this.intentPatterns)) {
-      if (pattern.test(lowerMessage)) {
+    // Check intents in priority order (most common first) for faster matching
+    for (const intent of this.intentPriority) {
+      const pattern = this.intentPatterns[intent];
+      if (pattern && pattern.test(lowerMessage)) {
         return intent;
       }
     }
@@ -468,61 +550,99 @@ Use engaging language that celebrates the artistry and cultural heritage.`;
    * @returns {Object} Response object
    */
   generateResponse(intent, _message) {
+    // Check if response is already cached (for static responses)
+    const cacheKey = `static_${intent}`;
+    if (this.staticResponseCache.has(cacheKey)) {
+      return this.staticResponseCache.get(cacheKey);
+    }
+
+    // Generate response lazily - only create what's needed
+    let response;
+
+    switch (intent) {
+      case 'greeting':
+        response = this.createFormattedResponse(
+          "🙏 **Hello! Welcome to AI Craft Assistant**\n\nI'm here to help you with:\n\n✨ **Craft Recognition** - Identify crafts from images\n🎤 **Voice Search** - Find crafts using your voice\n📚 **Cultural Knowledge** - Learn about craft traditions\n📝 **Craft Management** - Organize your projects\n\nHow can I assist you today?",
+          ['Show me features', 'How to upload a craft?', 'What crafts do you support?'],
+          { category: 'greeting', priority: 'high' }
+        );
+        break;
+
+      case 'help':
+        response = this.createFormattedResponse(
+          '📖 **Help Center**\n\n**What I Can Do:**\n\n🎨 **Craft Recognition**\n   Upload images for AI-powered identification\n\n🎤 **Voice Search**\n   Search using 25+ languages\n\n📝 **Craft Management**\n   Create, edit, and organize projects\n\n🔍 **Smart Search**\n   Find crafts by name, category, or description\n\n🌍 **Cultural Insights**\n   Learn about craft traditions and history\n\n---\n\n💡 What would you like to explore?',
+          ['Upload image', 'Voice search', 'Indian crafts', 'All features'],
+          { category: 'help', hasMultipleSections: true }
+        );
+        break;
+
+      case 'features':
+        response = this.createFormattedResponse(
+          `⚡ **Platform Features**\n\n${this.knowledgeBase.app.features.map((f, i) => `**${i + 1}.** ${f}`).join('\n')}\n\n---\n\n🎯 **Ready to get started?**\nChoose a feature below to learn more!`,
+          ['How to upload?', 'How to voice search?', 'Tell me about AI recognition'],
+          { category: 'features', totalFeatures: this.knowledgeBase.app.features.length }
+        );
+        break;
+
+      case 'craftInfo':
+        response = this.createFormattedResponse(
+          `🎨 **Supported Craft Types**\n\n${this.knowledgeBase.crafts.types.map(t => `• ${t.charAt(0).toUpperCase() + t.slice(1)}`).join('\n')}\n\n---\n\n💡 **Each craft has unique characteristics and techniques.**\n\nWould you like to explore a specific craft in detail?`,
+          ['Pottery techniques', 'Weaving materials', 'Indian traditional crafts'],
+          { category: 'craftInfo', totalCrafts: this.knowledgeBase.crafts.types.length }
+        );
+        break;
+
+      case 'indianCraft':
+        response = this.createFormattedResponse(
+          `🇮🇳 **Indian Handicrafts - A Rich Cultural Heritage**\n\n**Traditional Art Forms:**\n${this.knowledgeBase.indianCrafts.types
+            .slice(0, 10)
+            .map(c => `• ${c}`)
+            .join(
+              '\n'
+            )}\n\n...and many more!\n\n---\n\n📜 **Why Indian Crafts Matter:**\n\n✨ Centuries of tradition and artisan excellence\n🗺️ Unique regional identities across 12+ states\n🏆 UNESCO recognition and GI tags\n👐 Hereditary knowledge passed through generations\n\n---\n\n💬 Ask me about any craft's cultural significance, history, or techniques!`,
+          [
+            'Tell me about Madhubani art',
+            'History of Pashmina',
+            'Rajasthani crafts',
+            'Bengali artisan traditions',
+          ],
+          {
+            category: 'indianCraft',
+            region: 'India',
+            totalCrafts: this.knowledgeBase.indianCrafts.types.length,
+          }
+        );
+        break;
+
+      case 'cultural':
+        response = this.createFormattedResponse(
+          "🌍 **Cultural Insights Powered by AI**\n\n**What I Can Tell You:**\n\n📜 Historical context and origins\n🎭 Cultural significance and symbolism\n🗺️ Regional variations and traditions\n👥 Artisan communities and heritage\n🏛️ Museum collections and preservation\n\n---\n\n💡 Ask me your cultural question, and I'll provide a comprehensive answer using advanced AI!",
+          [
+            'Cultural significance of pottery',
+            'History of weaving traditions',
+            'Traditional jewelry symbolism',
+          ],
+          { category: 'cultural', usesAI: true }
+        );
+        break;
+
+      default:
+        // For other intents, generate responses on-demand without caching
+        return this.generateDynamicResponse(intent);
+    }
+
+    // Cache static responses for future use
+    this.staticResponseCache.set(cacheKey, response);
+    return response;
+  }
+
+  /**
+   * Generate dynamic responses that shouldn't be cached
+   * @param {String} intent - Detected intent
+   * @returns {Object} Response object
+   */
+  generateDynamicResponse(intent) {
     const responses = {
-      greeting: this.createFormattedResponse(
-        "🙏 **Hello! Welcome to AI Craft Assistant**\n\nI'm here to help you with:\n\n✨ **Craft Recognition** - Identify crafts from images\n🎤 **Voice Search** - Find crafts using your voice\n📚 **Cultural Knowledge** - Learn about craft traditions\n📝 **Craft Management** - Organize your projects\n\nHow can I assist you today?",
-        ['Show me features', 'How to upload a craft?', 'What crafts do you support?'],
-        { category: 'greeting', priority: 'high' }
-      ),
-
-      help: this.createFormattedResponse(
-        '📖 **Help Center**\n\n**What I Can Do:**\n\n🎨 **Craft Recognition**\n   Upload images for AI-powered identification\n\n🎤 **Voice Search**\n   Search using 25+ languages\n\n📝 **Craft Management**\n   Create, edit, and organize projects\n\n🔍 **Smart Search**\n   Find crafts by name, category, or description\n\n🌍 **Cultural Insights**\n   Learn about craft traditions and history\n\n---\n\n💡 What would you like to explore?',
-        ['Upload image', 'Voice search', 'Indian crafts', 'All features'],
-        { category: 'help', hasMultipleSections: true }
-      ),
-
-      features: this.createFormattedResponse(
-        `⚡ **Platform Features**\n\n${this.knowledgeBase.app.features.map((f, i) => `**${i + 1}.** ${f}`).join('\n')}\n\n---\n\n🎯 **Ready to get started?**\nChoose a feature below to learn more!`,
-        ['How to upload?', 'How to voice search?', 'Tell me about AI recognition'],
-        { category: 'features', totalFeatures: this.knowledgeBase.app.features.length }
-      ),
-
-      craftInfo: this.createFormattedResponse(
-        `🎨 **Supported Craft Types**\n\n${this.knowledgeBase.crafts.types.map(t => `• ${t.charAt(0).toUpperCase() + t.slice(1)}`).join('\n')}\n\n---\n\n💡 **Each craft has unique characteristics and techniques.**\n\nWould you like to explore a specific craft in detail?`,
-        ['Pottery techniques', 'Weaving materials', 'Indian traditional crafts'],
-        { category: 'craftInfo', totalCrafts: this.knowledgeBase.crafts.types.length }
-      ),
-
-      indianCraft: this.createFormattedResponse(
-        `🇮🇳 **Indian Handicrafts - A Rich Cultural Heritage**\n\n**Traditional Art Forms:**\n${this.knowledgeBase.indianCrafts.types
-          .slice(0, 10)
-          .map(c => `• ${c}`)
-          .join(
-            '\n'
-          )}\n\n...and many more!\n\n---\n\n📜 **Why Indian Crafts Matter:**\n\n✨ Centuries of tradition and artisan excellence\n🗺️ Unique regional identities across 12+ states\n🏆 UNESCO recognition and GI tags\n👐 Hereditary knowledge passed through generations\n\n---\n\n💬 Ask me about any craft's cultural significance, history, or techniques!`,
-        [
-          'Tell me about Madhubani art',
-          'History of Pashmina',
-          'Rajasthani crafts',
-          'Bengali artisan traditions',
-        ],
-        {
-          category: 'indianCraft',
-          region: 'India',
-          totalCrafts: this.knowledgeBase.indianCrafts.types.length,
-        }
-      ),
-
-      cultural: this.createFormattedResponse(
-        "🌍 **Cultural Insights Powered by AI**\n\n**What I Can Tell You:**\n\n📜 Historical context and origins\n🎭 Cultural significance and symbolism\n🗺️ Regional variations and traditions\n👥 Artisan communities and heritage\n🏛️ Museum collections and preservation\n\n---\n\n💡 Ask me your cultural question, and I'll provide a comprehensive answer using advanced AI!",
-        [
-          'Cultural significance of pottery',
-          'History of weaving traditions',
-          'Traditional jewelry symbolism',
-        ],
-        { category: 'cultural', usesAI: true }
-      ),
-
       upload: this.createFormattedResponse(
         "📄 **Upload Your Craft Image**\n\n**Steps to Upload:**\n\n➡️ **Step 1:** Click the upload button or drag & drop\n➡️ **Step 2:** Select a clear craft image (PNG, JPG, WEBP)\n➡️ **Step 3:** Wait for AI analysis (takes 2-5 seconds)\n➡️ **Step 4:** Get instant recognition with confidence scores\n\n---\n\n✅ **What You'll Get:**\n\n• Craft type identification\n• Category suggestions\n• Detailed analysis\n• Confidence scores\n\n💡 **Tip:** Use well-lit, clear images for best results!",
         ['Supported formats', 'Best image quality', 'View examples'],
@@ -582,7 +702,7 @@ Use engaging language that celebrates the artistry and cultural heritage.`;
   }
 
   /**
-   * Process user message and generate response
+   * Process user message and generate response (optimized with caching)
    * @param {String} message - User message
    * @param {Object} _context - Conversation context (unused but kept for future enhancements)
    * @returns {Object} Response with text and suggestions
@@ -606,25 +726,54 @@ Use engaging language that celebrates the artistry and cultural heritage.`;
     // Detect intent
     const intent = this.detectIntent(sanitizedMessage);
 
+    // Check cache for non-LLM intents (LLM responses are unique and shouldn't be cached heavily)
+    if (intent !== 'cultural' && intent !== 'indianCraft') {
+      const cacheKey = this.generateCacheKey(sanitizedMessage, intent);
+      const cachedResponse = this.getFromCache(cacheKey);
+
+      if (cachedResponse) {
+        // Return cached response with updated timestamp
+        return {
+          ...cachedResponse,
+          timestamp: new Date().toISOString(),
+          cached: true,
+        };
+      }
+    }
+
     // If cultural or Indian craft question detected, use LLM
     if (intent === 'cultural' || intent === 'indianCraft') {
       const llmResponse = await this.answerCulturalQuestion(sanitizedMessage);
-      return {
+      const responseWithMeta = {
         ...llmResponse,
         intent,
         timestamp: new Date().toISOString(),
       };
+
+      // Cache LLM responses for common questions only
+      if (sanitizedMessage.length < 100) {
+        const cacheKey = this.generateCacheKey(sanitizedMessage, intent);
+        this.addToCache(cacheKey, responseWithMeta);
+      }
+
+      return responseWithMeta;
     }
 
     // Generate response using pattern matching for other intents
     const response = this.generateResponse(intent, sanitizedMessage);
 
     // Add metadata
-    return {
+    const responseWithMeta = {
       ...response,
       intent,
       timestamp: new Date().toISOString(),
     };
+
+    // Cache the response for future use
+    const cacheKey = this.generateCacheKey(sanitizedMessage, intent);
+    this.addToCache(cacheKey, responseWithMeta);
+
+    return responseWithMeta;
   }
 
   /**
