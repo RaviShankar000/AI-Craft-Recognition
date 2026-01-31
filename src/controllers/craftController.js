@@ -48,6 +48,23 @@ const getAllCrafts = async (req, res) => {
     // Get total count
     const total = await Craft.countDocuments(query);
 
+    // Track search if query was provided
+    if (search) {
+      try {
+        await Analytics.trackSearch({
+          userId: req.user._id,
+          sessionId: req.headers['x-session-id'],
+          query: search,
+          searchType: 'text',
+          resultsCount: crafts.length,
+          deviceType: getDeviceType(req.headers['user-agent']),
+          browser: getBrowser(req.headers['user-agent']),
+        });
+      } catch (analyticsError) {
+        console.error('Analytics tracking failed:', analyticsError.message);
+      }
+    }
+
     res.status(200).json({
       success: true,
       count: crafts.length,
@@ -341,10 +358,20 @@ const voiceSearchCrafts = async (req, res) => {
     // Get total count
     const total = await Craft.countDocuments(searchQuery);
 
-    // Log voice search for analytics
-    console.log(
-      `Voice search by user ${req.user._id}: "${sanitizedQuery}" - ${crafts.length} results`
-    );
+    // Track voice search in analytics
+    try {
+      await Analytics.trackSearch({
+        userId: req.user._id,
+        sessionId: req.headers['x-session-id'],
+        query: sanitizedQuery,
+        searchType: 'voice',
+        resultsCount: crafts.length,
+        deviceType: getDeviceType(req.headers['user-agent']),
+        browser: getBrowser(req.headers['user-agent']),
+      });
+    } catch (analyticsError) {
+      console.error('Analytics tracking failed:', analyticsError.message);
+    }
 
     res.status(200).json({
       success: true,
