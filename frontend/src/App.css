@@ -1,24 +1,43 @@
 .app {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem 1rem;
+  min-height: calc(100vh - 64px);
+  background: var(--primary-gradient);
+  padding: 2.5rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.app::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.app > * {
+  position: relative;
+  z-index: 1;
 }
 
 .section-divider {
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  margin: 3rem 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  margin: 3rem auto;
   max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 768px) {
   .app {
-    padding: 1rem 0.5rem;
+    padding: 1.5rem 1rem;
   }
 
   .section-divider {
-    margin: 2rem 0;
+    margin: 2rem auto;
   }
 }
