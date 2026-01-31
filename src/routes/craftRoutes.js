@@ -7,10 +7,14 @@ const {
   getCraftById,
   updateCraft,
   deleteCraft,
+  voiceSearchCrafts,
 } = require('../controllers/craftController');
 
 // All craft routes are protected
 router.use(protect);
+
+// Voice search route (must be before /:id route)
+router.get('/voice-search', voiceSearchCrafts);
 
 // Craft routes
 router.route('/').get(getAllCrafts).post(createCraft);

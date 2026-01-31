@@ -1,4 +1,5 @@
 const Craft = require('../models/Craft');
+const { sanitizeTranscript } = require('../utils/sanitizer');
 
 /**
  * Get all crafts
@@ -21,7 +22,16 @@ const getAllCrafts = async (req, res) => {
     }
 
     if (search) {
-      query.$text = { $search: search };
+      // Sanitize search input for voice queries
+      const sanitizedSearch = sanitizeTranscript(search, {
+        maxLength: 200,
+        removeScripts: true,
+        normalizeWhitespace: true,
+      });
+
+      if (sanitizedSearch) {
+        query.$text = { $search: sanitizedSearch };
+      }
     }
 
     // Pagination
@@ -255,10 +265,94 @@ const deleteCraft = async (req, res) => {
   }
 };
 
+/**
+ * Voice search for crafts
+ * @route GET /api/crafts/voice-search
+ * @access Private
+ */
+const voiceSearchCrafts = async (req, res) => {
+  try {
+    const { query, state, category, page = 1, limit = 20 } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        error: 'Search query is required',
+      });
+    }
+
+    // Sanitize voice search query
+    const sanitizedQuery = sanitizeTranscript(query, {
+      maxLength: 200,
+      removeScripts: true,
+      normalizeWhitespace: true,
+      removeUrls: false,
+    });
+
+    if (!sanitizedQuery || sanitizedQuery.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid search query',
+      });
+    }
+
+    // Build search query
+    const searchQuery = {
+      user: req.user._id,
+      $text: { $search: sanitizedQuery },
+    };
+
+    if (state) {
+      searchQuery.state = state;
+    }
+
+    if (category) {
+      searchQuery.category = category;
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Execute search with text score
+    const crafts = await Craft.find(searchQuery, {
+      score: { $meta: 'textScore' },
+    })
+      .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('-__v');
+
+    // Get total count
+    const total = await Craft.countDocuments(searchQuery);
+
+    // Log voice search for analytics
+    console.log(
+      `Voice search by user ${req.user._id}: "${sanitizedQuery}" - ${crafts.length} results`
+    );
+
+    res.status(200).json({
+      success: true,
+      count: crafts.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      query: sanitizedQuery,
+      data: crafts,
+    });
+  } catch (error) {
+    console.error('Voice search error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllCrafts,
   createCraft,
   getCraftById,
   updateCraft,
   deleteCraft,
+  voiceSearchCrafts,
 };
