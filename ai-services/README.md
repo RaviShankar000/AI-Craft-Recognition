@@ -35,7 +35,27 @@ The service will start on `http://localhost:5001`
 - **POST** `/predict`
 - Content-Type: `multipart/form-data`
 - Field: `image` (file)
-- Returns: JSON with prediction results including craft type and confidence scores
+- Returns: JSON with craft name, confidence score, and all predictions
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "craft_name": "pottery",
+  "confidence": 0.8543,
+  "all_predictions": [
+    {"class": "pottery", "confidence": 0.8543},
+    {"class": "sculpture", "confidence": 0.0892},
+    ...
+  ],
+  "image_info": {
+    "filename": "craft.jpg",
+    "dimensions": "800x600",
+    "format": "JPEG"
+  },
+  "model_version": "1.0.0-placeholder"
+}
+```
 
 ## Features
 

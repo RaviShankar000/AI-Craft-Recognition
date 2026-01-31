@@ -2,9 +2,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 from models.model_loader import model_loader
+from utils.image_preprocessor import ImagePreprocessor
 
 app = Flask(__name__)
 CORS(app)
+
+# Initialize image preprocessor
+image_preprocessor = ImagePreprocessor(target_size=(224, 224))
 
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -40,12 +44,13 @@ def predict():
     - Field: image (file)
     
     Returns:
-    - JSON with prediction results
+    - JSON with craft name, confidence, and full predictions list
     """
     try:
         # Check if image file is present in request
         if 'image' not in request.files:
             return jsonify({
+                'success': False,
                 'error': 'No image file provided'
             }), 400
         
@@ -54,6 +59,7 @@ def predict():
         # Check if file is selected
         if file.filename == '':
             return jsonify({
+                'success': False,
                 'error': 'No file selected'
             }), 400
         
@@ -62,28 +68,54 @@ def predict():
         if not ('.' in file.filename and 
                 file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
             return jsonify({
+                'success': False,
                 'error': 'Invalid file type. Only images are allowed.'
             }), 400
         
-        # Perform ML prediction
-        # Note: Currently using placeholder model
-        # In production, preprocess image before passing to model
-        prediction = model.predict(file)
+        # Validate image integrity
+        try:
+            image_preprocessor.validate_image(file)
+        except ValueError as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 400
         
-        prediction_result = {
+        # Preprocess image
+        preprocessed_image = image_preprocessor.preprocess(file)
+        
+        # Get image metadata
+        file.stream.seek(0)
+        image_info = image_preprocessor.get_image_info(file)
+        
+        # Perform ML prediction
+        prediction = model.predict(preprocessed_image)
+        
+        # Format response with craft name and confidence
+        response = {
             'success': True,
-            'predictions': prediction['predictions'],
-            'top_prediction': prediction['top_prediction'],
-            'metadata': {
+            'craft_name': prediction['top_prediction']['class'],
+            'confidence': prediction['top_prediction']['confidence'],
+            'all_predictions': prediction['predictions'],
+            'image_info': {
                 'filename': file.filename,
-                'model_version': prediction['model_version']
-            }
+                'dimensions': f"{image_info['width']}x{image_info['height']}",
+                'format': image_info['format']
+            },
+            'model_version': prediction['model_version']
         }
         
-        return jsonify(prediction_result), 200
+        return jsonify(response), 200
         
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': 'Validation error',
+            'message': str(e)
+        }), 400
     except Exception as e:
         return jsonify({
+            'success': False,
             'error': 'An error occurred during prediction',
             'message': str(e)
         }), 500
