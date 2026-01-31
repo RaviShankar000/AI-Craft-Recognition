@@ -236,6 +236,23 @@ router.patch('/users/:id', async (req, res) => {
     const User = require('../models/User');
     const { role, isActive } = req.body;
     
+    // SECURITY: Prevent admins from modifying their own role
+    if (req.params.id === req.user.id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'You cannot modify your own role or status. Ask another administrator.',
+      });
+    }
+
+    // Validate role if provided
+    const validRoles = ['user', 'admin', 'seller'];
+    if (role && !validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+      });
+    }
+    
     const updateData = {};
     if (role) updateData.role = role;
     if (isActive !== undefined) updateData.isActive = isActive;

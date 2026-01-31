@@ -7,7 +7,7 @@ const User = require('../models/User');
  */
 const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -18,12 +18,14 @@ const register = async (req, res) => {
       });
     }
 
-    // Create user
+    // Create user with default 'user' role
+    // SECURITY: Role is not accepted from request body to prevent role escalation
+    // Only admins can assign roles through admin API
     const user = await User.create({
       name,
       email,
       password,
-      role: role || 'user',
+      role: 'user', // Always default to 'user' role
     });
 
     // Generate token

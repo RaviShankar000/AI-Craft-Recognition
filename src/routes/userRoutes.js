@@ -42,7 +42,15 @@ router.get('/me', protect, async (req, res) => {
  */
 router.put('/me', protect, async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, role, isActive } = req.body;
+
+    // SECURITY: Prevent role escalation - users cannot modify their own role or active status
+    if (role !== undefined || isActive !== undefined) {
+      return res.status(403).json({
+        success: false,
+        error: 'You are not authorized to modify role or account status. Contact an administrator.',
+      });
+    }
 
     const updateData = {};
     if (name) updateData.name = name;

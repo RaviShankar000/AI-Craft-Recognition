@@ -41,9 +41,9 @@ const validateRegister = (req, res, next) => {
     }
   }
 
-  // Validate role if provided
-  if (req.body.role && !['user', 'admin'].includes(req.body.role)) {
-    errors.push('Invalid role. Role must be either "user" or "admin"');
+  // SECURITY: Reject role in registration request to prevent privilege escalation
+  if (req.body.role !== undefined) {
+    errors.push('Role cannot be specified during registration. Default role will be assigned.');
   }
 
   if (errors.length > 0) {
