@@ -164,93 +164,295 @@ function CraftPredictor() {
         {prediction && (
           <div className="prediction-results">
             <div className="result-header">
-              <h3>Prediction Results</h3>
+              <div className="success-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </div>
+              <h3>Recognition Complete!</h3>
+              <p className="result-subtitle">Here's what we found</p>
             </div>
 
             {/* Top Prediction */}
             <div className="top-prediction">
-              <div className="prediction-label">Identified Craft:</div>
-              <div className="prediction-value">
-                <span className="craft-name">{prediction.craftName}</span>
-                <span
-                  className="confidence-badge"
-                  style={{ backgroundColor: getConfidenceColor(prediction.confidence) }}
-                >
-                  {formatConfidence(prediction.confidence)}
-                </span>
+              <div className="prediction-header">
+                <span className="prediction-badge">Top Match</span>
+              </div>
+              <div className="prediction-main">
+                <h4 className="craft-name">{prediction.craftName}</h4>
+                <div className="confidence-display">
+                  <div className="confidence-circle" style={{ '--confidence': prediction.confidence }}>
+                    <svg viewBox="0 0 36 36" className="circular-chart">
+                      <path
+                        className="circle-bg"
+                        d="M18 2.0845
+                          a 15.9155 15.9155 0 0 1 0 31.831
+                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                      <path
+                        className="circle"
+                        strokeDasharray={`${prediction.confidence * 100}, 100`}
+                        d="M18 2.0845
+                          a 15.9155 15.9155 0 0 1 0 31.831
+                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                        style={{ stroke: getConfidenceColor(prediction.confidence) }}
+                      />
+                      <text x="18" y="20.35" className="percentage">
+                        {Math.round(prediction.confidence * 100)}%
+                      </text>
+                    </svg>
+                  </div>
+                  <div className="confidence-info">
+                    <span className="confidence-label">Confidence Score</span>
+                    <span className="confidence-value">
+                      {formatConfidence(prediction.confidence)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* All Predictions */}
             <div className="all-predictions">
-              <h4>All Predictions:</h4>
-              <div className="predictions-list">
-                {prediction.allPredictions.map((pred, index) => (
-                  <div key={index} className="prediction-item">
-                    <div className="prediction-info">
-                      <span className="prediction-rank">#{index + 1}</span>
-                      <span className="prediction-class">{pred.class}</span>
+              <div className="section-header">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="12" y1="20" x2="12" y2="10"></line>
+                  <line x1="18" y1="20" x2="18" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="16"></line>
+                </svg>
+                <h4>Alternative Predictions</h4>
+              </div>
+              <div className="predictions-grid">
+                {prediction.allPredictions.slice(0, 5).map((pred, index) => (
+                  <div key={index} className="prediction-card">
+                    <div className="card-header">
+                      <span className="rank-badge" style={{
+                        background: index === 0 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
+                                   index === 1 ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' :
+                                   'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                      }}>#{index + 1}</span>
+                      <span className="confidence-badge-small" style={{
+                        backgroundColor: getConfidenceColor(pred.confidence)
+                      }}>
+                        {formatConfidence(pred.confidence)}
+                      </span>
                     </div>
-                    <div className="prediction-confidence">
-                      <div className="confidence-bar-container">
+                    <h5 className="craft-class">{pred.class}</h5>
+                    <div className="confidence-bar-wrapper">
+                      <div className="confidence-bar-bg">
                         <div
-                          className="confidence-bar"
+                          className="confidence-bar-fill"
                           style={{
                             width: `${pred.confidence * 100}%`,
                             backgroundColor: getConfidenceColor(pred.confidence),
                           }}
                         ></div>
                       </div>
-                      <span className="confidence-text">
-                        {formatConfidence(pred.confidence)}
-                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Image Info */}
-            {prediction.imageInfo && (
-              <div className="image-info">
-                <h4>Image Details:</h4>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <span className="info-label">Filename:</span>
-                    <span className="info-value">{prediction.imageInfo.filename}</span>
+            {/* Details Section */}
+            <div className="details-section">
+              {/* Image Info */}
+              {prediction.imageInfo && (
+                <div className="details-card">
+                  <div className="section-header">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <h4>Image Information</h4>
                   </div>
-                  <div className="info-item">
-                    <span className="info-label">Dimensions:</span>
-                    <span className="info-value">{prediction.imageInfo.dimensions}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Format:</span>
-                    <span className="info-value">{prediction.imageInfo.format}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Model Version:</span>
-                    <span className="info-value">{prediction.modelVersion}</span>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="info-icon"
+                      >
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                        <polyline points="13 2 13 9 20 9"></polyline>
+                      </svg>
+                      <div>
+                        <span className="info-label">Filename</span>
+                        <span className="info-value">{prediction.imageInfo.filename}</span>
+                      </div>
+                    </div>
+                    <div className="info-item">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="info-icon"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      </svg>
+                      <div>
+                        <span className="info-label">Dimensions</span>
+                        <span className="info-value">{prediction.imageInfo.dimensions}</span>
+                      </div>
+                    </div>
+                    <div className="info-item">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="info-icon"
+                      >
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                      </svg>
+                      <div>
+                        <span className="info-label">Format</span>
+                        <span className="info-value">{prediction.imageInfo.format}</span>
+                      </div>
+                    </div>
+                    <div className="info-item">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="info-icon"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                      <div>
+                        <span className="info-label">Model Version</span>
+                        <span className="info-value">{prediction.modelVersion}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Processing Time */}
-            {processingTime && (
-              <div className="processing-time">
-                <h4>Performance Metrics:</h4>
-                <div className="time-grid">
-                  <div className="time-item">
-                    <span className="time-label">Server Processing:</span>
-                    <span className="time-value">{processingTime.server}s</span>
+              {/* Processing Time */}
+              {processingTime && (
+                <div className="details-card">
+                  <div className="section-header">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    <h4>Performance</h4>
                   </div>
-                  <div className="time-item">
-                    <span className="time-label">Total Time:</span>
-                    <span className="time-value">{processingTime.total?.toFixed(2)}s</span>
+                  <div className="performance-metrics">
+                    <div className="metric-card">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="metric-icon"
+                      >
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                      </svg>
+                      <div>
+                        <span className="metric-label">Server Processing</span>
+                        <span className="metric-value">{processingTime.server}s</span>
+                      </div>
+                    </div>
+                    <div className="metric-card">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="metric-icon"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                      <div>
+                        <span className="metric-label">Total Time</span>
+                        <span className="metric-value">{processingTime.total?.toFixed(2)}s</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <button onClick={handleReset} className="btn-analyze-another">
               Analyze Another Image
