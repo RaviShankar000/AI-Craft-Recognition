@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+from models.model_loader import model_loader
 
 app = Flask(__name__)
 CORS(app)
@@ -12,13 +13,20 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 # Create uploads directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# Load ML model at startup
+print("Initializing AI Craft Recognition Service...")
+model = model_loader.load_model()
+print("Service ready!")
+
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    model_info = model.get_info()
     return jsonify({
         'status': 'healthy',
-        'service': 'AI Craft Recognition Service'
+        'service': 'AI Craft Recognition Service',
+        'model': model_info
     }), 200
 
 
@@ -57,32 +65,18 @@ def predict():
                 'error': 'Invalid file type. Only images are allowed.'
             }), 400
         
-        # TODO: Implement actual AI prediction logic here
-        # For now, return a mock response
+        # Perform ML prediction
+        # Note: Currently using placeholder model
+        # In production, preprocess image before passing to model
+        prediction = model.predict(file)
         
         prediction_result = {
             'success': True,
-            'predictions': [
-                {
-                    'class': 'pottery',
-                    'confidence': 0.85
-                },
-                {
-                    'class': 'sculpture',
-                    'confidence': 0.12
-                },
-                {
-                    'class': 'textile',
-                    'confidence': 0.03
-                }
-            ],
-            'top_prediction': {
-                'class': 'pottery',
-                'confidence': 0.85
-            },
+            'predictions': prediction['predictions'],
+            'top_prediction': prediction['top_prediction'],
             'metadata': {
                 'filename': file.filename,
-                'model_version': '1.0.0'
+                'model_version': prediction['model_version']
             }
         }
         
