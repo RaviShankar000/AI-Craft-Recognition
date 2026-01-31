@@ -12,18 +12,57 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
   );
   const recognitionRef = useRef(null);
 
+  // Common supported languages for Web Speech API
+  const supportedLanguages = [
+    'en-US', 'en-GB', 'en-AU', 'en-CA', 'en-IN',
+    'es-ES', 'es-MX', 'es-AR', 'es-CO',
+    'fr-FR', 'fr-CA',
+    'de-DE',
+    'it-IT',
+    'pt-BR', 'pt-PT',
+    'ru-RU',
+    'ja-JP',
+    'zh-CN', 'zh-TW',
+    'ko-KR',
+    'ar-SA',
+    'hi-IN',
+    'nl-NL',
+    'pl-PL',
+    'tr-TR',
+  ];
+
+  const validateLanguage = (lang) => {
+    if (!lang) return true;
+    return supportedLanguages.includes(lang);
+  };
+
   const startListening = () => {
     if (!browserSupported) {
       setError('Browser speech recognition not supported');
       return;
     }
 
+    // Validate language
+    if (!validateLanguage(language)) {
+      setError(
+        `Language '${language}' is not supported. Please use a supported language code like 'en-US', 'es-ES', 'fr-FR'.`
+      );
+      return;
+    }
+
     setError(null);
     setTranscript('');
 
-    // Create recognition instance
-    const recognition = SpeechService.createBrowserRecognition(language);
-    recognitionRef.current = recognition;
+    try {
+      // Create recognition instance
+      const recognition = SpeechService.createBrowserRecognition(language);
+
+      if (!recognition) {
+        setError('Failed to initialize speech recognition');
+        return;
+      }
+
+      recognitionRef.current = recognition;
 
     recognition.onstart = () => {
       console.log('Speech recognition started');
@@ -52,7 +91,36 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      setError(`Recognition error: ${event.error}`);
+      
+      let errorMessage = 'Recognition error';
+      
+      switch (event.error) {
+        case 'no-speech':
+          errorMessage = 'No speech detected. Please try again.';
+          break;
+        case 'audio-capture':
+          errorMessage = 'Microphone not found or not accessible.';
+          break;
+        case 'not-allowed':
+          errorMessage = 'Microphone permission denied. Please allow access.';
+          break;
+        case 'network':
+          errorMessage = 'Network error. Check your internet connection.';
+          break;
+        case 'aborted':
+          errorMessage = 'Speech recognition was aborted.';
+          break;
+        case 'language-not-supported':
+          errorMessage = `Language '${language}' is not supported by your browser.`;
+          break;
+        case 'service-not-allowed':
+          errorMessage = 'Speech service is not allowed in this context.';
+          break;
+        default:
+          errorMessage = `Recognition error: ${event.error}`;
+      }
+      
+      setError(errorMessage);
       setIsListening(false);
     };
 
@@ -61,8 +129,19 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
       setIsListening(false);
     };
 
-    recognition.start();
-  };
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error('Failed to start recognition:', err);
+      setError('Failed to start speech recognition. Please try again.');
+      setIsListening(false);
+    }
+  } catch (err) {
+    console.error('Speech recognition initialization error:', err);
+    setError('Failed to initialize speech recognition');
+    setIsListening(false);
+  }
+};
 
   const stopListening = () => {
     if (recognitionRef.current) {

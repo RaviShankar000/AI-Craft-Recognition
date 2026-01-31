@@ -72,10 +72,25 @@ const transcribeAudio = async (req, res) => {
     if (!result.success) {
       console.error('Transcription failed:', result.error, result.message);
 
-      return res.status(result.status || 500).json({
+      // Return specific error codes for different scenarios
+      let statusCode = 500;
+      if (result.error === 'Unsupported language') {
+        statusCode = 400;
+      } else if (result.error === 'Invalid audio file') {
+        statusCode = 400;
+      } else if (result.error === 'No speech detected') {
+        statusCode = 422;
+      } else if (result.error === 'Validation failed') {
+        statusCode = 400;
+      } else if (result.error === 'Request timeout') {
+        statusCode = 504;
+      }
+
+      return res.status(statusCode).json({
         success: false,
         error: result.error,
         message: result.message,
+        supportedLanguages: result.supportedLanguages,
       });
     }
 

@@ -78,13 +78,41 @@ class SpeechService {
       return null;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = language;
-    recognition.maxAlternatives = 1;
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = language;
+      recognition.maxAlternatives = 1;
 
-    return recognition;
+      return recognition;
+    } catch (error) {
+      console.error('Failed to create speech recognition:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if language is supported by browser
+   * @param {String} language - Language code
+   * @returns {Boolean} Support status
+   */
+  static isLanguageSupported(language) {
+    if (!this.isBrowserSpeechSupported()) {
+      return false;
+    }
+
+    // Try to create recognition with the language
+    try {
+      const recognition = this.createBrowserRecognition(language);
+      if (recognition) {
+        recognition.abort();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   }
 }
 
