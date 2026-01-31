@@ -6,6 +6,8 @@ const AIService = require('../services/aiService');
  * @access  Private
  */
 const predictCraft = async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     // Check if file was uploaded
     if (!req.file) {
@@ -23,23 +25,39 @@ const predictCraft = async (req, res) => {
       });
     }
 
+    // Validate file size
+    const MAX_SIZE = 16 * 1024 * 1024; // 16MB
+    if (req.file.size > MAX_SIZE) {
+      return res.status(400).json({
+        success: false,
+        error: 'File too large',
+        message: `Maximum file size is ${MAX_SIZE / 1024 / 1024}MB`,
+      });
+    }
+
     // Log file info for debugging
     console.log('Processing image:', {
       filename: req.file.originalname,
       mimetype: req.file.mimetype,
-      size: req.file.size,
+      size: `${(req.file.size / 1024).toFixed(2)}KB`,
     });
 
     // Send image to AI service
     const result = await AIService.predictCraft(req.file);
 
     if (!result.success) {
+      // Log error for monitoring
+      console.error('AI prediction failed:', result.error, result.message);
+      
       return res.status(result.status || 500).json({
         success: false,
         error: result.error,
         message: result.message,
       });
     }
+
+    const totalTime = Date.now() - startTime;
+    console.log(`Total request time: ${totalTime}ms`);
 
     // Return prediction results
     res.status(200).json({
@@ -50,9 +68,19 @@ const predictCraft = async (req, res) => {
         allPredictions: result.data.all_predictions,
         imageInfo: result.data.image_info,
         modelVersion: result.data.model_version,
+        processingTime: result.data.processing_time,
+        totalTime: totalTime / 1000,
       },
     });
   } catch (error) {
+    console.error('Prediction controller error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message,
+    });
+  }
+};
     res.status(500).json({
       success: false,
       error: 'Server error',

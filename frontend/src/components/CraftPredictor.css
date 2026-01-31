@@ -338,6 +338,43 @@
   font-weight: 500;
 }
 
+/* Processing Time */
+.processing-time {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.processing-time h4 {
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 0.75rem;
+}
+
+.time-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.time-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.time-label {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.time-value {
+  font-size: 1.1rem;
+  color: #646cff;
+  font-weight: 600;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .craft-predictor {

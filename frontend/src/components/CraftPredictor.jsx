@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import AIService from '../services/aiService';
 import './CraftPredictor.css';
 
@@ -8,6 +8,8 @@ function CraftPredictor() {
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [processingTime, setProcessingTime] = useState(null);
+  const abortControllerRef = useRef(null);
 
   const handleImageSelect = (event) => {
     const file = event.target.files[0];
@@ -19,14 +21,16 @@ function CraftPredictor() {
       }
 
       // Validate file size (16MB limit)
-      if (file.size > 16 * 1024 * 1024) {
-        setError('Image size must be less than 16MB');
+      const MAX_SIZE = 16 * 1024 * 1024;
+      if (file.size > MAX_SIZE) {
+        setError(`Image size must be less than ${MAX_SIZE / 1024 / 1024}MB`);
         return;
       }
 
       setSelectedImage(file);
       setError(null);
       setPrediction(null);
+      setProcessingTime(null);
 
       // Create preview
       const reader = new FileReader();
@@ -43,29 +47,51 @@ function CraftPredictor() {
       return;
     }
 
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     setLoading(true);
     setError(null);
+    const startTime = performance.now();
 
     try {
       const result = await AIService.predictCraft(selectedImage);
 
       if (result.success) {
+        const endTime = performance.now();
+        const clientTime = ((endTime - startTime) / 1000).toFixed(2);
+        
         setPrediction(result.data);
+        setProcessingTime({
+          client: clientTime,
+          server: result.data.processingTime,
+          total: result.data.totalTime,
+        });
       } else {
         setError(result.error || 'Failed to predict craft type');
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      console.error('Prediction error:', err);
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
     setSelectedImage(null);
     setImagePreview(null);
     setPrediction(null);
     setError(null);
+    setProcessingTime(null);
+    setLoading(false);
   };
 
   const getConfidenceColor = (confidence) => {
@@ -204,6 +230,23 @@ function CraftPredictor() {
                   <div className="info-item">
                     <span className="info-label">Model Version:</span>
                     <span className="info-value">{prediction.modelVersion}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Processing Time */}
+            {processingTime && (
+              <div className="processing-time">
+                <h4>Performance Metrics:</h4>
+                <div className="time-grid">
+                  <div className="time-item">
+                    <span className="time-label">Server Processing:</span>
+                    <span className="time-value">{processingTime.server}s</span>
+                  </div>
+                  <div className="time-item">
+                    <span className="time-label">Total Time:</span>
+                    <span className="time-value">{processingTime.total?.toFixed(2)}s</span>
                   </div>
                 </div>
               </div>

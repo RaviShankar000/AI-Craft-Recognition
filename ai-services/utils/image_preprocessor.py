@@ -9,8 +9,31 @@ import io
 class ImagePreprocessor:
     """Handles image preprocessing for model inference"""
     
-    def __init__(self, target_size=(224, 224)):
+    def __init__(self, target_size=(224, 224), max_dimension=1024):
         self.target_size = target_size
+        self.max_dimension = max_dimension  # Maximum dimension before resizing
+    
+    def _optimize_image_size(self, image):
+        """
+        Reduce image dimensions if too large to speed up processing
+        
+        Args:
+            image: PIL Image object
+            
+        Returns:
+            PIL.Image: Optimized image
+        """
+        width, height = image.size
+        max_dim = max(width, height)
+        
+        # Only resize if image is larger than max_dimension
+        if max_dim > self.max_dimension:
+            scale = self.max_dimension / max_dim
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            return image.resize((new_width, new_height), Image.LANCZOS)
+        
+        return image
     
     def validate_image(self, file):
         """
@@ -34,7 +57,10 @@ class ImagePreprocessor:
             file.seek(0)
             return True
         except Exception as e:
-            # Reset file pointer even on error
+          Optimize image size for faster processing
+        image = self._optimize_image_size(image)
+        
+        #   # Reset file pointer even on error
             try:
                 file.seek(0)
             except:
