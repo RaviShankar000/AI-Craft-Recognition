@@ -187,10 +187,10 @@ const updateCartItem = async (req, res) => {
         success: true,
         message: 'Item removed from cart',
         data: {
-          items: cart.items,
-          totalItems: cart.totalItems,
-          totalPrice: cart.totalPrice,
-          totalQuantity: cart.totalQuantity,
+          items: cart?.items || [],
+          totalItems: cart?.totalItems || 0,
+          totalPrice: cart?.totalPrice || 0,
+          totalQuantity: cart?.totalQuantity || 0,
         },
       });
     }
@@ -222,10 +222,10 @@ const updateCartItem = async (req, res) => {
       success: true,
       message: 'Cart item updated successfully',
       data: {
-        items: cart.items,
-        totalItems: cart.totalItems,
-        totalPrice: cart.totalPrice,
-        totalQuantity: cart.totalQuantity,
+        items: cart?.items || [],
+        totalItems: cart?.totalItems || 0,
+        totalPrice: cart?.totalPrice || 0,
+        totalQuantity: cart?.totalQuantity || 0,
       },
     });
   } catch (error) {
