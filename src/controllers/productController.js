@@ -124,7 +124,8 @@ const getProductById = async (req, res) => {
 /**
  * Create new product
  * @route POST /api/products
- * @access Private
+ * @access Private/Seller
+ * @description Only sellers and admins can create products
  */
 const createProduct = async (req, res) => {
   try {
@@ -200,7 +201,8 @@ const createProduct = async (req, res) => {
 /**
  * Update product
  * @route PUT /api/products/:id
- * @access Private
+ * @access Private/Seller
+ * @description Only sellers and admins can update their own products
  */
 const updateProduct = async (req, res) => {
   try {
@@ -291,7 +293,8 @@ const updateProduct = async (req, res) => {
 /**
  * Delete product
  * @route DELETE /api/products/:id
- * @access Private
+ * @access Private/Seller
+ * @description Only sellers and admins can delete their own products
  */
 const deleteProduct = async (req, res) => {
   try {

@@ -30,21 +30,21 @@ router.get('/', optionalAuth, getAllProducts);
 router.get('/:id', getProductById);
 
 /**
- * PROTECTED ROUTES
- * Authentication required
+ * PROTECTED ROUTES - SELLER ONLY
+ * Sellers can manage their own products
  */
 
 // Create new product
-router.post('/', protect, createProduct);
+router.post('/', protect, authorize('seller', 'admin'), createProduct);
 
 // Update product
-router.put('/:id', protect, updateProduct);
+router.put('/:id', protect, authorize('seller', 'admin'), updateProduct);
 
 // Delete product
-router.delete('/:id', protect, deleteProduct);
+router.delete('/:id', protect, authorize('seller', 'admin'), deleteProduct);
 
 // Stock management route
-router.patch('/:id/stock', protect, updateProductStock);
+router.patch('/:id/stock', protect, authorize('seller', 'admin'), updateProductStock);
 
 /**
  * PROTECTED ROUTES - ADMIN ONLY
