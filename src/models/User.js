@@ -30,6 +30,46 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin', 'seller'],
       default: 'user',
     },
+    sellerApplication: {
+      status: {
+        type: String,
+        enum: ['none', 'pending', 'approved', 'rejected'],
+        default: 'none',
+      },
+      businessName: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'Business name cannot exceed 100 characters'],
+      },
+      businessDescription: {
+        type: String,
+        trim: true,
+        maxlength: [500, 'Business description cannot exceed 500 characters'],
+      },
+      phoneNumber: {
+        type: String,
+        trim: true,
+      },
+      address: {
+        type: String,
+        trim: true,
+      },
+      appliedAt: {
+        type: Date,
+      },
+      reviewedAt: {
+        type: Date,
+      },
+      reviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      rejectionReason: {
+        type: String,
+        trim: true,
+        maxlength: [500, 'Rejection reason cannot exceed 500 characters'],
+      },
+    },
     isActive: {
       type: Boolean,
       default: true,

@@ -24,6 +24,13 @@ const {
   getPopularCrafts,
 } = require('../controllers/craftController');
 
+const {
+  getPendingApplications,
+  approveApplication,
+  rejectApplication,
+  getApplicationStats,
+} = require('../controllers/sellerController');
+
 /**
  * ============================================================================
  * ADMIN DASHBOARD ROUTES
@@ -41,7 +48,8 @@ const {
  *   ├── products/         - Product moderation
  *   ├── orders/           - Order management
  *   ├── crafts/           - Craft management
- *   └── users/            - User management
+ *   ├── users/            - User management
+ *   └── sellers/          - Seller application management
  * ============================================================================
  */
 
@@ -376,5 +384,81 @@ router.get('/analytics', async (req, res) => {
     });
   }
 });
+
+/**
+ * ============================================================================
+ * SELLER APPLICATION MANAGEMENT
+ * ============================================================================
+ */
+
+/**
+ * Get seller application statistics
+ * @route GET /api/admin/seller-applications/stats
+ * @access Private/Admin
+ */
+router.get('/seller-applications/stats', getApplicationStats);
+
+/**
+ * Get all pending seller applications
+ * @route GET /api/admin/seller-applications/pending
+ * @access Private/Admin
+ */
+router.get('/seller-applications/pending', getPendingApplications);
+
+/**
+ * Get all seller applications (with status filter)
+ * @route GET /api/admin/seller-applications
+ * @access Private/Admin
+ * @query status - Filter by status (pending/approved/rejected)
+ */
+router.get('/seller-applications', async (req, res) => {
+  try {
+    const SellerApplication = require('../models/SellerApplication');
+    const { status, page = 1, limit = 10 } = req.query;
+    
+    const query = {};
+    if (status) {
+      query.status = status;
+    }
+
+    const applications = await SellerApplication.find(query)
+      .populate('user', 'name email')
+      .populate('reviewedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await SellerApplication.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      data: applications,
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Approve seller application
+ * @route PATCH /api/admin/seller-applications/:id/approve
+ * @access Private/Admin
+ */
+router.patch('/seller-applications/:id/approve', approveApplication);
+
+/**
+ * Reject seller application
+ * @route PATCH /api/admin/seller-applications/:id/reject
+ * @access Private/Admin
+ */
+router.patch('/seller-applications/:id/reject', rejectApplication);
 
 module.exports = router;

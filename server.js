@@ -37,6 +37,7 @@ const aiRoutes = require('./src/routes/aiRoutes');
 const speechRoutes = require('./src/routes/speechRoutes');
 const chatbotRoutes = require('./src/routes/chatbotRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
+const sellerRoutes = require('./src/routes/sellerRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -50,6 +51,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/speech', speechRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/seller', sellerRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
