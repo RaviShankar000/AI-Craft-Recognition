@@ -95,17 +95,17 @@ sellerApplicationSchema.index({ status: 1, createdAt: -1 });
 // Method to approve application
 sellerApplicationSchema.methods.approve = async function (adminId, note = '') {
   const User = require('./User');
-  
+
   this.status = 'approved';
   this.reviewedBy = adminId;
   this.reviewedAt = new Date();
   this.reviewNote = note;
-  
+
   await this.save();
-  
+
   // Update user role to seller
   await User.findByIdAndUpdate(this.user, { role: 'seller' });
-  
+
   return this;
 };
 
@@ -115,17 +115,15 @@ sellerApplicationSchema.methods.reject = async function (adminId, note) {
   this.reviewedBy = adminId;
   this.reviewedAt = new Date();
   this.reviewNote = note;
-  
+
   await this.save();
-  
+
   return this;
 };
 
 // Static method to find pending applications
 sellerApplicationSchema.statics.findPending = function () {
-  return this.find({ status: 'pending' })
-    .populate('user', 'name email')
-    .sort({ createdAt: -1 });
+  return this.find({ status: 'pending' }).populate('user', 'name email').sort({ createdAt: -1 });
 };
 
 const SellerApplication = mongoose.model('SellerApplication', sellerApplicationSchema);

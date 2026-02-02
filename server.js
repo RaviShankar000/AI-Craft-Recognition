@@ -38,6 +38,7 @@ const speechRoutes = require('./src/routes/speechRoutes');
 const chatbotRoutes = require('./src/routes/chatbotRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const sellerRoutes = require('./src/routes/sellerRoutes');
+const auditLogRoutes = require('./src/routes/auditLogRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -52,6 +53,7 @@ app.use('/api/speech', speechRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

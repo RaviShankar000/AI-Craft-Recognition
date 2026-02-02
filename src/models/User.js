@@ -94,7 +94,7 @@ userSchema.pre('save', async function (next) {
 // SECURITY: Prevent unauthorized role changes through direct model updates
 userSchema.pre('findOneAndUpdate', function (next) {
   const update = this.getUpdate();
-  
+
   // If role is being updated, log it (can be monitored for security)
   if (update.$set && update.$set.role) {
     console.warn('[SECURITY] Role update detected:', {
@@ -102,7 +102,7 @@ userSchema.pre('findOneAndUpdate', function (next) {
       timestamp: new Date().toISOString(),
     });
   }
-  
+
   // Prevent direct role updates without going through proper channels
   // Note: This middleware helps but the primary protection should be at the route level
   next();

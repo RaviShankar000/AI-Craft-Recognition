@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
+const {
+  logUserRoleChanged,
+  logUserAccountStatusChanged,
+  logUserDeleted,
+} = require('../utils/auditLogger');
 
 // Import admin-related controllers
 const {
@@ -37,14 +42,14 @@ const {
  * ============================================================================
  * All routes under /api/admin/* require authentication and admin role.
  * These routes are grouped for centralized admin functionality.
- * 
+ *
  * SECURITY: Sellers and regular users are BLOCKED from accessing these routes.
  * Only users with role === 'admin' can access any endpoint under /api/admin/*
- * 
+ *
  * MIDDLEWARE PROTECTION:
  * - protect: Verifies JWT token and authenticates user
  * - authorize('admin'): Ensures user has admin role (BLOCKS sellers & users)
- * 
+ *
  * ROUTE STRUCTURE:
  * /api/admin/
  *   ├── dashboard         - Admin dashboard overview
@@ -192,19 +197,19 @@ router.get('/users', async (req, res) => {
   try {
     const User = require('../models/User');
     const { page = 1, limit = 20, role, isActive, search } = req.query;
-    
+
     const query = {};
-    
+
     // Filter by role
     if (role) {
       query.role = role;
     }
-    
+
     // Filter by active status
     if (isActive !== undefined) {
       query.isActive = isActive === 'true';
     }
-    
+
     // Search by name or email
     if (search) {
       query.$or = [
@@ -214,7 +219,7 @@ router.get('/users', async (req, res) => {
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const users = await User.find(query)
       .select('-password')
       .sort({ createdAt: -1 })
@@ -248,7 +253,7 @@ router.patch('/users/:id', async (req, res) => {
   try {
     const User = require('../models/User');
     const { role, isActive } = req.body;
-    
+
     // SECURITY: Prevent admins from modifying their own role
     if (req.params.id === req.user.id.toString()) {
       return res.status(403).json({
@@ -265,28 +270,65 @@ router.patch('/users/:id', async (req, res) => {
         error: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
       });
     }
-    
+
     const updateData = {};
     if (role) updateData.role = role;
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
+    // Get current user data before update for audit log
+    const currentUser = await User.findById(req.params.id);
 
-    if (!user) {
+    if (!currentUser) {
       return res.status(404).json({
         success: false,
         error: 'User not found',
       });
     }
 
+    // Store old values for audit log
+    const oldRole = currentUser.role;
+    const oldIsActive = currentUser.isActive;
+
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    }).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    // Log role change if applicable
+    if (role && oldRole !== role) {
+      await logUserRoleChanged(
+        req.user,
+        updatedUser,
+        oldRole,
+        role,
+        req.body.reason || 'No reason provided',
+        req
+      );
+    }
+
+    // Log account status change if applicable
+    if (isActive !== undefined && oldIsActive !== isActive) {
+      await logUserAccountStatusChanged(
+        req.user,
+        updatedUser,
+        oldIsActive,
+        isActive,
+        req.body.reason || 'No reason provided',
+        req
+      );
+    }
+
     res.status(200).json({
       success: true,
       message: 'User updated successfully',
-      data: user,
+      data: updatedUser,
     });
   } catch (error) {
     res.status(500).json({
@@ -304,7 +346,7 @@ router.patch('/users/:id', async (req, res) => {
 router.delete('/users/:id', async (req, res) => {
   try {
     const User = require('../models/User');
-    
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { isActive: false },
@@ -317,6 +359,9 @@ router.delete('/users/:id', async (req, res) => {
         error: 'User not found',
       });
     }
+
+    // Log user deletion/deactivation
+    await logUserDeleted(req.user, user, req.body.reason || 'No reason provided', req);
 
     res.status(200).json({
       success: true,
@@ -348,13 +393,13 @@ router.get('/analytics', async (req, res) => {
     const { startDate, endDate, eventType } = req.query;
 
     const query = {};
-    
+
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
-    
+
     if (eventType) {
       query.eventType = eventType;
     }
@@ -420,7 +465,7 @@ router.get('/seller-applications', async (req, res) => {
   try {
     const SellerApplication = require('../models/SellerApplication');
     const { status, page = 1, limit = 10 } = req.query;
-    
+
     const query = {};
     if (status) {
       query.status = status;

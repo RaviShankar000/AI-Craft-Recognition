@@ -2,36 +2,36 @@
  * ============================================================================
  * ADMIN BOOTSTRAP SCRIPT
  * ============================================================================
- * 
+ *
  * This script creates a default admin user from environment variables.
  * It's designed to be idempotent (safe to run multiple times).
- * 
+ *
  * USAGE:
  * ------
  * 1. Set environment variables:
  *    ADMIN_NAME=Admin User
  *    ADMIN_EMAIL=admin@example.com
  *    ADMIN_PASSWORD=SecurePassword123
- * 
+ *
  * 2. Run the script:
  *    node scripts/seedAdmin.js
- * 
+ *
  * 3. Or with npm script:
  *    npm run seed:admin
- * 
+ *
  * ENVIRONMENT VARIABLES:
  * ----------------------
  * ADMIN_NAME     - Full name of the admin user (default: "System Administrator")
  * ADMIN_EMAIL    - Email address for admin login (required)
  * ADMIN_PASSWORD - Secure password for admin (required, min 6 chars)
- * 
+ *
  * SECURITY NOTES:
  * ---------------
  * - Never commit actual admin credentials to version control
  * - Use strong passwords in production
  * - Consider using secrets management for production deployments
  * - Change default admin password immediately after first login
- * 
+ *
  * ============================================================================
  */
 
@@ -61,14 +61,18 @@ const seedAdmin = async () => {
     if (!adminEmail) {
       console.error('❌ Error: ADMIN_EMAIL environment variable is required');
       console.log('\nUsage:');
-      console.log('  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=SecurePass123 node scripts/seedAdmin.js');
+      console.log(
+        '  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=SecurePass123 node scripts/seedAdmin.js'
+      );
       process.exit(1);
     }
 
     if (!adminPassword) {
       console.error('❌ Error: ADMIN_PASSWORD environment variable is required');
       console.log('\nUsage:');
-      console.log('  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=SecurePass123 node scripts/seedAdmin.js');
+      console.log(
+        '  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=SecurePass123 node scripts/seedAdmin.js'
+      );
       process.exit(1);
     }
 
@@ -103,7 +107,7 @@ const seedAdmin = async () => {
     } else {
       // Create new admin user
       console.log('🆕 Creating new admin user...\n');
-      
+
       const admin = await User.create({
         name: adminName,
         email: adminEmail,
@@ -119,7 +123,7 @@ const seedAdmin = async () => {
       console.log(`  Email:  ${admin.email}`);
       console.log(`  Role:   ${admin.role}`);
       console.log(`  Active: ${admin.isActive}\n`);
-      
+
       console.log('🔐 Login Credentials:');
       console.log(`  Email:    ${adminEmail}`);
       console.log(`  Password: ${adminPassword}`);
@@ -139,7 +143,7 @@ const seedAdmin = async () => {
 /**
  * Handle unhandled promise rejections
  */
-process.on('unhandledRejection', (err) => {
+process.on('unhandledRejection', err => {
   console.error('Unhandled Promise Rejection:', err);
   process.exit(1);
 });

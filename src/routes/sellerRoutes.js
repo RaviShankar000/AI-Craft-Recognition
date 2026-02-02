@@ -14,9 +14,9 @@ const {
  * ============================================================================
  * SELLER ONBOARDING ROUTES (USER-FACING)
  * ============================================================================
- * 
+ *
  * These routes handle the user-facing seller application workflow:
- * 
+ *
  * USER FLOW:
  * 1. User applies for seller status with business details
  * 2. Application goes to 'pending' status
@@ -25,7 +25,7 @@ const {
  * 5. Admin reviews and approves/rejects (see adminRoutes.js)
  * 6. If approved, user role automatically changes to 'seller'
  * 7. If rejected, user can reapply after addressing concerns
- * 
+ *
  * NOTE: Admin management of applications is in /api/admin/seller-applications/*
  * ============================================================================
  */
@@ -61,20 +61,20 @@ router.delete('/application', protect, cancelApplication);
  * ============================================================================
  * SELLER DASHBOARD ROUTES
  * ============================================================================
- * 
+ *
  * SECURITY: These routes are STRICTLY for sellers and admins only.
  * Regular users (role: 'user') are BLOCKED by authorize middleware.
- * 
+ *
  * These routes are for approved sellers to manage their business:
  * - View dashboard overview with product and sales statistics
  * - Manage their products
  * - View sales history and revenue
- * 
+ *
  * ACCESS CONTROL:
  * - Regular users (role: 'user') → 403 FORBIDDEN
  * - Sellers (role: 'seller') → ALLOWED
  * - Admins (role: 'admin') → ALLOWED
- * 
+ *
  * NOTE: Regular users must apply and be approved to become sellers first
  * ============================================================================
  */

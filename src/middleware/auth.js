@@ -2,65 +2,65 @@
  * ============================================================================
  * AUTHENTICATION & AUTHORIZATION MIDDLEWARE
  * ============================================================================
- * 
+ *
  * This module provides role-based access control (RBAC) for the application.
  * It consists of two main middleware functions:
- * 
+ *
  * 1. protect - Verifies JWT token and attaches user to request
  * 2. authorize - Restricts access based on user roles
- * 
+ *
  * ROLE HIERARCHY:
  * ---------------
  * - 'user': Default role for registered users (basic access)
  * - 'seller': Marketplace vendors (can list products)
  * - 'admin': Full system access (user management, content moderation)
- * 
+ *
  * HOW IT WORKS:
  * -------------
  * 1. User logs in and receives a JWT token containing their role
  * 2. protect middleware verifies token and attaches user info to req.user
  * 3. authorize middleware checks if user's role is in allowed roles list
  * 4. If authorized, request proceeds; otherwise, 403 error is returned
- * 
+ *
  * USAGE EXAMPLES:
  * ---------------
  * // Public route (no middleware)
  * router.get('/products', getAllProducts);
- * 
+ *
  * // Protected route (authenticated users only)
  * router.get('/profile', protect, getProfile);
- * 
+ *
  * // Role-restricted route (specific roles only)
  * router.delete('/users/:id', protect, authorize('admin'), deleteUser);
  * router.post('/products', protect, authorize('seller', 'admin'), createProduct);
- * 
+ *
  * EXTENDING ROLES:
  * ----------------
  * To add new roles to the system:
- * 
+ *
  * 1. Update User Model (src/models/User.js):
  *    role: {
  *      type: String,
  *      enum: ['user', 'admin', 'seller', 'YOUR_NEW_ROLE'],
  *      default: 'user',
  *    }
- * 
+ *
  * 2. Use the new role in route definitions:
  *    router.post('/some-route', protect, authorize('YOUR_NEW_ROLE'), handler);
- * 
+ *
  * 3. Assign the role when creating/updating users:
- *    const user = await User.create({ 
- *      name, email, password, 
- *      role: 'YOUR_NEW_ROLE' 
+ *    const user = await User.create({
+ *      name, email, password,
+ *      role: 'YOUR_NEW_ROLE'
  *    });
- * 
+ *
  * 4. No changes needed to this middleware - it dynamically handles any role!
- * 
+ *
  * DEBUGGING:
  * ----------
  * All auth operations are logged with [AUTH DEBUG] prefix for troubleshooting.
  * Monitor console logs to track authentication and authorization flow.
- * 
+ *
  * ERROR HANDLING:
  * ---------------
  * Errors are passed to the global error handler (src/middleware/errorHandler.js)
@@ -78,25 +78,25 @@ const User = require('../models/User');
  * ===================
  * Verifies JWT token and attaches authenticated user to request object.
  * Must be applied before any route that requires authentication.
- * 
+ *
  * @middleware
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
- * 
+ *
  * @description
  * - Extracts JWT token from Authorization header (Bearer token)
  * - Verifies token signature and expiration
  * - Fetches user from database using token payload
  * - Checks if user account is active
  * - Attaches user info to req.user for downstream use
- * 
+ *
  * @returns {void} Calls next() on success, returns error response on failure
- * 
+ *
  * @example
  * // Apply to single route
  * router.get('/dashboard', protect, getDashboard);
- * 
+ *
  * // Apply to all routes in a router
  * router.use(protect);
  * router.get('/orders', getOrders);
@@ -127,7 +127,7 @@ const protect = async (req, res, next) => {
         userId: decoded.id,
         email: decoded.email,
         role: decoded.role,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Find user by id from token
@@ -156,15 +156,15 @@ const protect = async (req, res, next) => {
         role: decoded.role || user.role, // Use role from JWT token, fallback to user model
         isActive: user.isActive,
       };
-      
+
       console.log('[AUTH DEBUG] User authenticated and attached to request:', {
         userId: req.user.id,
         email: req.user.email,
         role: req.user.role,
         route: req.originalUrl,
-        method: req.method
+        method: req.method,
       });
-      
+
       next();
     } catch (error) {
       // Handle specific token errors
@@ -202,36 +202,36 @@ const protect = async (req, res, next) => {
  * ====================
  * Higher-order function that creates middleware to restrict access based on user roles.
  * Must be used AFTER protect middleware (requires req.user to be set).
- * 
+ *
  * @function
  * @param {...string} roles - Variable number of role strings that are allowed access
  * @returns {Function} Express middleware function that checks user authorization
- * 
+ *
  * @description
  * This is a middleware factory that returns a middleware function configured
  * with specific allowed roles. It checks if the authenticated user's role
  * matches any of the allowed roles.
- * 
+ *
  * FLOW:
  * 1. Check if user is authenticated (req.user exists)
  * 2. Check if user's role is in the allowed roles list
  * 3. Grant access if role matches, deny with 403 if not
  * 4. Pass detailed error info to global error handler
- * 
+ *
  * @example
  * // Single role restriction
  * router.delete('/users/:id', protect, authorize('admin'), deleteUser);
- * 
+ *
  * // Multiple roles allowed (OR logic)
  * router.post('/products', protect, authorize('seller', 'admin'), createProduct);
- * 
+ *
  * // Complex role chain
- * router.patch('/orders/:id', 
+ * router.patch('/orders/:id',
  *   protect,                              // Step 1: Authenticate
  *   authorize('admin', 'order_manager'),  // Step 2: Authorize
  *   updateOrderStatus                     // Step 3: Execute
  * );
- * 
+ *
  * BEST PRACTICES:
  * - Always use protect before authorize
  * - List roles from most to least restrictive for readability
@@ -247,7 +247,7 @@ const authorize = (...roles) => {
       userRole: req.user?.role,
       requiredRoles: roles,
       route: req.originalUrl,
-      method: req.method
+      method: req.method,
     });
 
     if (!req.user) {
@@ -264,16 +264,18 @@ const authorize = (...roles) => {
         userRole: req.user.role,
         requiredRoles: roles,
         reason: 'User role not in allowed roles',
-        message: `Role '${req.user.role}' attempted to access route requiring: [${roles.join(', ')}]`
+        message: `Role '${req.user.role}' attempted to access route requiring: [${roles.join(', ')}]`,
       });
-      const error = new Error(`Access denied. User role '${req.user.role}' is not authorized to access this route. Required roles: [${roles.join(', ')}]`);
+      const error = new Error(
+        `Access denied. User role '${req.user.role}' is not authorized to access this route. Required roles: [${roles.join(', ')}]`
+      );
       error.statusCode = 403;
       error.code = 'ROLE_AUTHORIZATION_FAILED';
       error.details = {
         userRole: req.user.role,
         requiredRoles: roles,
         route: req.originalUrl,
-        method: req.method
+        method: req.method,
       };
       return next(error);
     }
@@ -281,7 +283,7 @@ const authorize = (...roles) => {
     console.log('[AUTH DEBUG] Authorization granted:', {
       userId: req.user.id,
       userRole: req.user.role,
-      allowedRoles: roles
+      allowedRoles: roles,
     });
     next();
   };
@@ -292,17 +294,17 @@ const authorize = (...roles) => {
  * =========================
  * Attempts to authenticate user but allows request to proceed even if no token.
  * Useful for routes that show different content for authenticated vs public users.
- * 
+ *
  * @middleware
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
- * 
+ *
  * @description
  * - If token exists, verifies it and attaches user to req.user
  * - If no token or invalid token, continues without authentication
  * - Route handler can check if req.user exists to determine authentication
- * 
+ *
  * @example
  * router.get('/products', optionalAuth, (req, res) => {
  *   if (req.user) {
@@ -329,7 +331,7 @@ const optionalAuth = async (req, res, next) => {
     // Try to verify token
     try {
       const decoded = verifyToken(token);
-      
+
       // Find user by id from token
       const user = await User.findById(decoded.id);
 
@@ -342,7 +344,7 @@ const optionalAuth = async (req, res, next) => {
           role: decoded.role || user.role,
           isActive: user.isActive,
         };
-        
+
         console.log('[AUTH DEBUG] Optional auth - User authenticated:', {
           userId: req.user.id,
           email: req.user.email,
@@ -365,23 +367,23 @@ const optionalAuth = async (req, res, next) => {
  * EXPORTS
  * =======
  * Export middleware functions for use in route definitions.
- * 
+ *
  * @exports protect - Authentication middleware (verifies JWT)
  * @exports authorize - Authorization middleware factory (checks roles)
  * @exports optionalAuth - Optional authentication (allows public access)
- * 
+ *
  * @example Import and use in routes:
  * const { protect, authorize, optionalAuth } = require('../middleware/auth');
- * 
+ *
  * // Public route - no middleware
  * router.get('/public', publicHandler);
- * 
+ *
  * // Authenticated route - protect only
  * router.get('/profile', protect, profileHandler);
- * 
+ *
  * // Role-restricted route - protect + authorize
  * router.delete('/admin', protect, authorize('admin'), adminHandler);
- * 
+ *
  * // Optional auth - different content for auth/public users
  * router.get('/products', optionalAuth, productsHandler);
  */

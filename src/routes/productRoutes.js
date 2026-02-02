@@ -47,7 +47,13 @@ router.put('/:id', protect, authorize('seller', 'admin'), updateLimiter, updateP
 router.delete('/:id', protect, authorize('seller', 'admin'), updateLimiter, deleteProduct);
 
 // Stock management route - Rate limited: 20 requests per 15 minutes
-router.patch('/:id/stock', protect, authorize('seller', 'admin'), updateLimiter, updateProductStock);
+router.patch(
+  '/:id/stock',
+  protect,
+  authorize('seller', 'admin'),
+  updateLimiter,
+  updateProductStock
+);
 
 /**
  * PROTECTED ROUTES - ADMIN ONLY

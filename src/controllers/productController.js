@@ -1,11 +1,17 @@
 const Product = require('../models/Product');
 const Craft = require('../models/Craft');
+const {
+  logProductCreated,
+  logProductUpdated,
+  logProductDeleted,
+  logProductModerated,
+} = require('../utils/auditLogger');
 
 /**
  * Get all products
  * @route GET /api/products
  * @access Public/Private (Role-based filtering)
- * @description 
+ * @description
  * - Public access: Returns only approved products for marketplace viewing
  * - Seller/Admin access: Returns only their own products (all statuses)
  * - Regular user access: Returns approved products from all sellers
@@ -25,8 +31,8 @@ const getAllProducts = async (req, res) => {
     } = req.query;
 
     // Role-based query filtering
-    let query = {};
-    
+    const query = {};
+
     if (!req.user) {
       // Public access: only approved products
       query.moderationStatus = 'approved';
@@ -107,26 +113,25 @@ const getAllProducts = async (req, res) => {
  */
 const getProductById = async (req, res) => {
   try {
-    let query = { _id: req.params.id };
-    
+    const query = { _id: req.params.id };
+
     // Role-based filtering
     if (!req.user) {
       // Public: only approved products
       query.moderationStatus = 'approved';
     } else if (req.user.role === 'seller') {
       // Sellers: their own products OR approved products from others
-      query.$or = [
-        { user: req.user._id },
-        { moderationStatus: 'approved' }
-      ];
+      query.$or = [{ user: req.user._id }, { moderationStatus: 'approved' }];
     } else if (req.user.role === 'user') {
       // Regular users: only approved products
       query.moderationStatus = 'approved';
     }
     // Admins: no additional filter (can see everything)
-    
-    const product = await Product.findOne(query)
-      .populate('craft', 'name state category description');
+
+    const product = await Product.findOne(query).populate(
+      'craft',
+      'name state category description'
+    );
 
     if (!product) {
       return res.status(404).json({
@@ -190,9 +195,10 @@ const createProduct = async (req, res) => {
     if (!craftExists) {
       return res.status(404).json({
         success: false,
-        error: req.user.role === 'admin'
-          ? 'Craft not found'
-          : 'Craft not found or does not belong to you',
+        error:
+          req.user.role === 'admin'
+            ? 'Craft not found'
+            : 'Craft not found or does not belong to you',
       });
     }
 
@@ -212,6 +218,9 @@ const createProduct = async (req, res) => {
 
     // Populate craft details
     await product.populate('craft', 'name state category');
+
+    // Log product creation
+    await logProductCreated(req.user, product, req);
 
     res.status(201).json({
       success: true,
@@ -272,9 +281,10 @@ const updateProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        error: req.user.role === 'admin' 
-          ? 'Product not found'
-          : 'Product not found or you do not have permission to update it',
+        error:
+          req.user.role === 'admin'
+            ? 'Product not found'
+            : 'Product not found or you do not have permission to update it',
       });
     }
 
@@ -298,17 +308,28 @@ const updateProduct = async (req, res) => {
       if (!craftExists) {
         return res.status(404).json({
           success: false,
-          error: req.user.role === 'admin'
-            ? 'Craft not found'
-            : 'Craft not found or does not belong to you',
+          error:
+            req.user.role === 'admin'
+              ? 'Craft not found'
+              : 'Craft not found or does not belong to you',
         });
       }
     }
 
     // Update fields
-    if (name !== undefined) product.name = name;
-    if (price !== undefined) product.price = price;
-    if (stock !== undefined) product.stock = stock;
+    const changes = {};
+    if (name !== undefined && name !== product.name) {
+      changes.name = { old: product.name, new: name };
+      product.name = name;
+    }
+    if (price !== undefined && price !== product.price) {
+      changes.price = { old: product.price, new: price };
+      product.price = price;
+    }
+    if (stock !== undefined && stock !== product.stock) {
+      changes.stock = { old: product.stock, new: stock };
+      product.stock = stock;
+    }
     if (craft !== undefined) product.craft = craft;
     if (image !== undefined) product.image = image;
     if (description !== undefined) product.description = description;
@@ -321,6 +342,9 @@ const updateProduct = async (req, res) => {
 
     // Populate craft details
     await product.populate('craft', 'name state category');
+
+    // Log product update with changes
+    await logProductUpdated(req.user, product, changes, req);
 
     res.status(200).json({
       success: true,
@@ -385,9 +409,10 @@ const deleteProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        error: req.user.role === 'admin'
-          ? 'Product not found'
-          : 'Product not found or you do not have permission to delete it',
+        error:
+          req.user.role === 'admin'
+            ? 'Product not found'
+            : 'Product not found or you do not have permission to delete it',
       });
     }
 
@@ -400,6 +425,9 @@ const deleteProduct = async (req, res) => {
     }
 
     await product.deleteOne();
+
+    // Log product deletion
+    await logProductDeleted(req.user, product, req);
 
     res.status(200).json({
       success: true,
@@ -471,9 +499,10 @@ const updateProductStock = async (req, res) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        error: req.user.role === 'admin'
-          ? 'Product not found'
-          : 'Product not found or you do not have permission to update it',
+        error:
+          req.user.role === 'admin'
+            ? 'Product not found'
+            : 'Product not found or you do not have permission to update it',
       });
     }
 
@@ -612,7 +641,7 @@ const getPendingProducts = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const query = { moderationStatus: 'pending' };
-    
+
     const products = await Product.find(query)
       .populate('user', 'name email')
       .populate('craft', 'name')
@@ -646,7 +675,7 @@ const getPendingProducts = async (req, res) => {
 const approveProduct = async (req, res) => {
   try {
     const { note } = req.body;
-    
+
     const product = await Product.findById(req.params.id);
 
     if (!product) {
@@ -657,6 +686,9 @@ const approveProduct = async (req, res) => {
     }
 
     await product.updateModerationStatus('approved', req.user.id, note);
+
+    // Log product moderation
+    await logProductModerated(req.user, product, 'approved', note, req);
 
     res.status(200).json({
       success: true,
@@ -697,6 +729,9 @@ const rejectProduct = async (req, res) => {
     }
 
     await product.updateModerationStatus('rejected', req.user.id, note);
+
+    // Log product moderation
+    await logProductModerated(req.user, product, 'rejected', note, req);
 
     res.status(200).json({
       success: true,

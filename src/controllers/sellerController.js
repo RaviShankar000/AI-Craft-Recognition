@@ -2,6 +2,10 @@ const SellerApplication = require('../models/SellerApplication');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const {
+  logSellerApplicationApproved,
+  logSellerApplicationRejected,
+} = require('../utils/auditLogger');
 
 /**
  * Apply to become a seller
@@ -10,14 +14,8 @@ const Order = require('../models/Order');
  */
 const applyForSeller = async (req, res) => {
   try {
-    const {
-      businessName,
-      businessDescription,
-      contactPhone,
-      businessAddress,
-      taxId,
-      websiteUrl,
-    } = req.body;
+    const { businessName, businessDescription, contactPhone, businessAddress, taxId, websiteUrl } =
+      req.body;
 
     // Check if user already has a seller application
     const existingApplication = await SellerApplication.findOne({ user: req.user.id });
@@ -78,7 +76,7 @@ const applyForSeller = async (req, res) => {
       existingApplication.reviewNote = '';
       existingApplication.reviewedBy = undefined;
       existingApplication.reviewedAt = undefined;
-      
+
       application = await existingApplication.save();
     } else {
       // Create new application
@@ -113,8 +111,10 @@ const applyForSeller = async (req, res) => {
  */
 const getApplicationStatus = async (req, res) => {
   try {
-    const application = await SellerApplication.findOne({ user: req.user.id })
-      .populate('reviewedBy', 'name email');
+    const application = await SellerApplication.findOne({ user: req.user.id }).populate(
+      'reviewedBy',
+      'name email'
+    );
 
     if (!application) {
       return res.status(404).json({
@@ -256,6 +256,9 @@ const approveApplication = async (req, res) => {
     // Approve the application (this also updates user role to 'seller')
     await application.approve(req.user.id, note);
 
+    // Log the approval action
+    await logSellerApplicationApproved(req.user, application, req);
+
     res.status(200).json({
       success: true,
       message: 'Seller application approved successfully. User role updated to seller.',
@@ -304,6 +307,9 @@ const rejectApplication = async (req, res) => {
 
     // Reject the application
     await application.reject(req.user.id, note);
+
+    // Log the rejection action
+    await logSellerApplicationRejected(req.user, application, req);
 
     res.status(200).json({
       success: true,
@@ -437,14 +443,7 @@ const getSellerProducts = async (req, res) => {
       });
     }
 
-    const {
-      status,
-      page = 1,
-      limit = 10,
-      sort = '-createdAt',
-      search,
-      inStock,
-    } = req.query;
+    const { status, page = 1, limit = 10, sort = '-createdAt', search, inStock } = req.query;
 
     // Build query
     const query = { user: req.user._id };
