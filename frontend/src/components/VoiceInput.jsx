@@ -4,7 +4,7 @@ import { createSafeText } from '../utils/sanitizer';
 import { useSocket } from '../hooks/useSocket';
 import './VoiceInput.css';
 
-function VoiceInput({ onTranscript, language = 'en-US' }) {
+function VoiceInput({ onTranscript, language = 'en-US', onStateChange }) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState(null);
@@ -84,6 +84,9 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
       onStart: () => {
         setIsListening(true);
         simulateAudioLevel();
+        if (onStateChange) {
+          onStateChange(true); // Notify parent that listening started
+        }
       },
       onResult: (sanitizedTranscript) => {
         setTranscript(sanitizedTranscript);
@@ -98,6 +101,9 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
           clearInterval(audioLevelIntervalRef.current);
         }
         setAudioLevel(0);
+        if (onStateChange) {
+          onStateChange(false); // Notify parent that listening stopped
+        }
       },
       onEnd: () => {
         setIsListening(false);
@@ -105,6 +111,9 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
           clearInterval(audioLevelIntervalRef.current);
         }
         setAudioLevel(0);
+        if (onStateChange) {
+          onStateChange(false); // Notify parent that listening stopped
+        }
       },
     });
 
@@ -122,6 +131,9 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
       clearInterval(audioLevelIntervalRef.current);
     }
     setAudioLevel(0);
+    if (onStateChange) {
+      onStateChange(false); // Notify parent that listening stopped
+    }
   };
 
   const clearTranscript = () => {

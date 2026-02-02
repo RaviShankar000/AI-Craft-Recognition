@@ -12,6 +12,7 @@ function VoiceSearch() {
   const [searchStatus, setSearchStatus] = useState(null); // 'started', 'streaming', 'completed', 'failed'
   const [streamingBatch, setStreamingBatch] = useState(0);
   const [totalBatches, setTotalBatches] = useState(0);
+  const [isListening, setIsListening] = useState(false); // Track voice listening state
   const { socket } = useSocket();
 
   // Listen for real-time voice search events
@@ -74,6 +75,7 @@ function VoiceSearch() {
     }
 
     setSearchQuery(processedQuery);
+    setIsListening(false); // Stop listening indicator when transcript received
     await performSearch(processedQuery);
   };
 
@@ -128,6 +130,11 @@ function VoiceSearch() {
     setSearchStatus(null);
     setStreamingBatch(0);
     setTotalBatches(0);
+    setIsListening(false);
+  };
+
+  const handleVoiceStateChange = (listening) => {
+    setIsListening(listening);
   };
 
   return (
@@ -135,10 +142,50 @@ function VoiceSearch() {
       <div className="search-header">
         <h2>🔍 Voice Craft Search</h2>
         <p>Search crafts using your voice or text</p>
+        
+        {/* Master Live State Indicator */}
+        <div className="master-state-indicator">
+          {isListening && (
+            <div className="state-badge listening">
+              <span className="state-icon pulsing">🎤</span>
+              <span className="state-text">Listening to your voice...</span>
+              <div className="audio-waves">
+                <span className="wave"></span>
+                <span className="wave"></span>
+                <span className="wave"></span>
+              </div>
+            </div>
+          )}
+          {!isListening && (searchStatus === 'started' || searchStatus === 'streaming') && (
+            <div className="state-badge searching">
+              <span className="state-icon pulsing">🔍</span>
+              <span className="state-text">
+                {searchStatus === 'started' && 'Starting search...'}
+                {searchStatus === 'streaming' && `Searching... (${streamingBatch}/${totalBatches})`}
+              </span>
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${totalBatches > 0 ? (streamingBatch / totalBatches) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+          {!isListening && searchStatus === 'completed' && searchResults.length > 0 && (
+            <div className="state-badge completed">
+              <span className="state-icon">✓</span>
+              <span className="state-text">Found {searchResults.length} results</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Voice Input */}
-      <VoiceInput onTranscript={handleVoiceTranscript} language="en-US" />
+      <VoiceInput 
+        onTranscript={handleVoiceTranscript} 
+        language="en-US"
+        onStateChange={handleVoiceStateChange}
+      />
 
       {/* Text Search Form */}
       <form onSubmit={handleTextSearch} className="text-search-form">

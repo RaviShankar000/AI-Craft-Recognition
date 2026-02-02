@@ -20,6 +20,133 @@
   font-size: 1rem;
 }
 
+/* Master Live State Indicator */
+.master-state-indicator {
+  margin-top: 1.5rem;
+  min-height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.state-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  min-width: 300px;
+  transition: all 0.3s ease;
+}
+
+.state-badge.listening {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+.state-badge.searching {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+.state-badge.completed {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.state-icon {
+  font-size: 2rem;
+  display: inline-block;
+}
+
+.state-icon.pulsing {
+  animation: icon-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.state-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Audio Waves Animation */
+.audio-waves {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 20px;
+}
+
+.audio-waves .wave {
+  width: 3px;
+  background: white;
+  border-radius: 2px;
+  animation: wave-height 1s ease-in-out infinite;
+}
+
+.audio-waves .wave:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.audio-waves .wave:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.audio-waves .wave:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes wave-height {
+  0%, 100% {
+    height: 8px;
+  }
+  50% {
+    height: 20px;
+  }
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: white;
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
 /* Text Search Form */
 .text-search-form {
   margin: 2rem 0;
