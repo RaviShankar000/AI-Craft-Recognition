@@ -139,20 +139,24 @@ const createProduct = async (req, res) => {
       });
     }
 
-    // Verify craft exists and belongs to user
-    const craftExists = await Craft.findOne({
-      _id: craft,
-      user: req.user._id,
-    });
+    // Verify craft exists and belongs to user (admins can use any craft)
+    const craftQuery = { _id: craft };
+    if (req.user.role !== 'admin') {
+      craftQuery.user = req.user._id;
+    }
+
+    const craftExists = await Craft.findOne(craftQuery);
 
     if (!craftExists) {
       return res.status(404).json({
         success: false,
-        error: 'Craft not found or does not belong to you',
+        error: req.user.role === 'admin'
+          ? 'Craft not found'
+          : 'Craft not found or does not belong to you',
       });
     }
 
-    // Create product
+    // Create product - always use authenticated user as owner (no override allowed)
     const product = await Product.create({
       name,
       price,
@@ -163,7 +167,7 @@ const createProduct = async (req, res) => {
       category,
       sku,
       discount,
-      user: req.user._id,
+      user: req.user._id, // Ownership is always the authenticated user
     });
 
     // Populate craft details
@@ -209,30 +213,46 @@ const updateProduct = async (req, res) => {
     const { name, price, stock, craft, image, description, category, sku, discount, isAvailable } =
       req.body;
 
-    // Find product
-    const product = await Product.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    });
+    // Find product - admins can update any product, sellers only their own
+    const query = { _id: req.params.id };
+    if (req.user.role !== 'admin') {
+      query.user = req.user._id;
+    }
+
+    const product = await Product.findOne(query);
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        error: 'Product not found',
+        error: req.user.role === 'admin' 
+          ? 'Product not found'
+          : 'Product not found or you do not have permission to update it',
       });
     }
 
-    // If craft is being updated, verify it exists and belongs to user
-    if (craft && craft !== product.craft.toString()) {
-      const craftExists = await Craft.findOne({
-        _id: craft,
-        user: req.user._id,
+    // Ownership validation: Ensure sellers can only update their own products
+    if (req.user.role === 'seller' && product.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to update this product',
       });
+    }
+
+    // If craft is being updated, verify it exists and belongs to user (admins can use any craft)
+    if (craft && craft !== product.craft.toString()) {
+      const craftQuery = { _id: craft };
+      if (req.user.role !== 'admin') {
+        craftQuery.user = req.user._id;
+      }
+
+      const craftExists = await Craft.findOne(craftQuery);
 
       if (!craftExists) {
         return res.status(404).json({
           success: false,
-          error: 'Craft not found or does not belong to you',
+          error: req.user.role === 'admin'
+            ? 'Craft not found'
+            : 'Craft not found or does not belong to you',
         });
       }
     }
@@ -298,15 +318,28 @@ const updateProduct = async (req, res) => {
  */
 const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    });
+    // Find product - admins can delete any product, sellers only their own
+    const query = { _id: req.params.id };
+    if (req.user.role !== 'admin') {
+      query.user = req.user._id;
+    }
+
+    const product = await Product.findOne(query);
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        error: 'Product not found',
+        error: req.user.role === 'admin'
+          ? 'Product not found'
+          : 'Product not found or you do not have permission to delete it',
+      });
+    }
+
+    // Ownership validation: Ensure sellers can only delete their own products
+    if (req.user.role === 'seller' && product.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to delete this product',
       });
     }
 
@@ -363,16 +396,28 @@ const updateProductStock = async (req, res) => {
       });
     }
 
-    // Find product
-    const product = await Product.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    });
+    // Find product - admins can update any product stock, sellers only their own
+    const query = { _id: req.params.id };
+    if (req.user.role !== 'admin') {
+      query.user = req.user._id;
+    }
+
+    const product = await Product.findOne(query);
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        error: 'Product not found',
+        error: req.user.role === 'admin'
+          ? 'Product not found'
+          : 'Product not found or you do not have permission to update it',
+      });
+    }
+
+    // Ownership validation: Ensure sellers can only update their own product stock
+    if (req.user.role === 'seller' && product.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to update this product stock',
       });
     }
 
