@@ -1,4 +1,5 @@
 const config = require('../config/env');
+const logger = require('../config/logger');
 
 /**
  * Format error response
@@ -131,11 +132,7 @@ const errorHandler = (err, req, res, _next) => {
   }
 
   // Log error
-  console.error('❌ ERROR:', {
-    message: error.message,
-    statusCode: error.statusCode,
-    ...(config.env === 'development' && { stack: error.stack }),
-  });
+  logger.logError(error, req);
 
   // Send response
   const response = formatErrorResponse(error, req);

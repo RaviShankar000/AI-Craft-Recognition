@@ -1,3 +1,5 @@
+const logger = require('../config/logger');
+
 /**
  * Request Logging Middleware
  * Logs method, URL, userId, IP, and response time
@@ -10,7 +12,7 @@ const requestLogger = (req, res, next) => {
   const userRole = req.user?.role || 'guest';
 
   // Log incoming request
-  console.log(`📥 [${new Date().toISOString()}] ${req.method} ${req.originalUrl}`, {
+  logger.http(`${req.method} ${req.originalUrl}`, {
     userId,
     userRole,
     ip: req.ip || req.connection.remoteAddress,
@@ -30,21 +32,12 @@ const requestLogger = (req, res, next) => {
   res.on('finish', () => {
     const duration = Date.now() - startTime;
     const statusCode = res.statusCode;
-    const statusEmoji = statusCode >= 500 ? '❌' : statusCode >= 400 ? '⚠️' : '✅';
 
-    console.log(
-      `${statusEmoji} [${new Date().toISOString()}] ${req.method} ${req.originalUrl}`,
-      {
-        statusCode,
-        duration: `${duration}ms`,
-        userId,
-        userRole,
-      }
-    );
+    logger.logRequest(req, statusCode, duration);
 
     // Log slow requests (> 1 second)
     if (duration > 1000) {
-      console.warn(`🐌 SLOW REQUEST: ${req.method} ${req.originalUrl} took ${duration}ms`);
+      logger.warn(`SLOW REQUEST: ${req.method} ${req.originalUrl} took ${duration}ms`);
     }
 
     // Log errors
@@ -52,7 +45,7 @@ const requestLogger = (req, res, next) => {
       try {
         const parsed = JSON.parse(responseBody);
         if (parsed.message || parsed.error) {
-          console.error(`❌ ERROR RESPONSE:`, {
+          logger.error('ERROR RESPONSE', {
             url: req.originalUrl,
             error: parsed.message || parsed.error,
             userId,
@@ -109,19 +102,8 @@ const detailedRequestLogger = (req, res, next) => {
   // Log response
   res.on('finish', () => {
     const duration = Date.now() - startTime;
-    const statusEmoji =
-      res.statusCode >= 500 ? '❌' :
-      res.statusCode >= 400 ? '⚠️' :
-      res.statusCode >= 300 ? '🔄' : '✅';
 
-    console.log(`${statusEmoji} RESPONSE:`, {
-      requestId,
-      method: req.method,
-      url: req.originalUrl,
-      statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      userId: logData.userId,
-    });
+    logger.logRequest(req, res.statusCode, duration);
   });
 
   next();
