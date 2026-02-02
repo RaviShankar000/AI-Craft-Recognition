@@ -1,4 +1,5 @@
 const speechToTextService = require('../services/speechToTextService');
+const { getIO } = require('../config/socket');
 
 /**
  * @desc    Transcribe audio to text
@@ -59,6 +60,23 @@ const transcribeAudio = async (req, res) => {
       size: `${(req.file.size / 1024).toFixed(2)}KB`,
     });
 
+    // Emit socket event to notify frontend that transcription has started
+    try {
+      const io = getIO();
+      if (req.user && req.user._id) {
+        io.to(req.user._id.toString()).emit('voice_recording_started', {
+          userId: req.user._id,
+          filename: req.file.originalname,
+          fileSize: req.file.size,
+          language: language || 'auto-detect',
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[SOCKET] Emitted voice_recording_started to user ${req.user._id}`);
+      }
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit voice_recording_started:', socketError.message);
+    }
+
     // Get language from request body (optional)
     const language = req.body.language || null;
 
@@ -71,6 +89,23 @@ const transcribeAudio = async (req, res) => {
 
     if (!result.success) {
       console.error('Transcription failed:', result.error, result.message);
+
+      // Emit socket event for transcription failure
+      try {
+        const io = getIO();
+        if (req.user && req.user._id) {
+          io.to(req.user._id.toString()).emit('voice_recording_failed', {
+            userId: req.user._id,
+            filename: req.file.originalname,
+            error: result.error,
+            message: result.message,
+            timestamp: new Date().toISOString(),
+          });
+          console.log(`[SOCKET] Emitted voice_recording_failed to user ${req.user._id}`);
+        }
+      } catch (socketError) {
+        console.error('[SOCKET] Failed to emit voice_recording_failed:', socketError.message);
+      }
 
       // Return specific error codes for different scenarios
       let statusCode = 500;
@@ -97,6 +132,27 @@ const transcribeAudio = async (req, res) => {
     const totalTime = Date.now() - startTime;
     console.log(`Total transcription time: ${totalTime}ms`);
 
+    // Emit socket event to notify frontend that transcription completed
+    try {
+      const io = getIO();
+      if (req.user && req.user._id) {
+        io.to(req.user._id.toString()).emit('voice_recording_completed', {
+          userId: req.user._id,
+          filename: req.file.originalname,
+          text: result.data.text,
+          language: result.data.language,
+          confidence: result.data.confidence,
+          provider: result.data.provider,
+          processingTime: result.data.duration,
+          totalTime: totalTime / 1000,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[SOCKET] Emitted voice_recording_completed to user ${req.user._id}`);
+      }
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit voice_recording_completed:', socketError.message);
+    }
+
     // Return transcription results
     res.status(200).json({
       success: true,
@@ -111,6 +167,24 @@ const transcribeAudio = async (req, res) => {
     });
   } catch (error) {
     console.error('Transcription controller error:', error);
+    
+    // Emit socket event for unexpected errors
+    try {
+      const io = getIO();
+      if (req.user && req.user._id) {
+        io.to(req.user._id.toString()).emit('voice_recording_failed', {
+          userId: req.user._id,
+          filename: req.file?.originalname || 'unknown',
+          error: 'Server error',
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[SOCKET] Emitted voice_recording_failed (exception) to user ${req.user._id}`);
+      }
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit voice_recording_failed:', socketError.message);
+    }
+    
     res.status(500).json({
       success: false,
       error: 'Server error',

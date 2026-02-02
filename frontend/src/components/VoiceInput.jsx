@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import SpeechService from '../services/speechService';
 import { createSafeText } from '../utils/sanitizer';
+import { useSocket } from '../hooks/useSocket';
 import './VoiceInput.css';
 
 function VoiceInput({ onTranscript, language = 'en-US' }) {
@@ -9,8 +10,50 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
   const [error, setError] = useState(null);
   const [browserSupported] = useState(() => SpeechService.isBrowserSpeechSupported());
   const [audioLevel, setAudioLevel] = useState(0);
+  const [recordingStatus, setRecordingStatus] = useState(null); // 'started', 'processing', 'completed', 'failed'
   const recognitionRef = useRef(null);
   const audioLevelIntervalRef = useRef(null);
+  const { socket } = useSocket();
+
+  // Listen for voice recording socket events
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRecordingStarted = (data) => {
+      console.log('[VOICE] Recording started:', data);
+      setRecordingStatus('started');
+    };
+
+    const handleRecordingCompleted = (data) => {
+      console.log('[VOICE] Recording completed:', data);
+      setRecordingStatus('completed');
+      
+      // Update transcript with results from backend
+      if (data.text) {
+        const sanitizedText = createSafeText(data.text);
+        setTranscript(sanitizedText);
+        if (onTranscript) {
+          onTranscript(sanitizedText);
+        }
+      }
+    };
+
+    const handleRecordingFailed = (data) => {
+      console.error('[VOICE] Recording failed:', data);
+      setRecordingStatus('failed');
+      setError(data.message || data.error || 'Voice recording failed');
+    };
+
+    socket.on('voice_recording_started', handleRecordingStarted);
+    socket.on('voice_recording_completed', handleRecordingCompleted);
+    socket.on('voice_recording_failed', handleRecordingFailed);
+
+    return () => {
+      socket.off('voice_recording_started', handleRecordingStarted);
+      socket.off('voice_recording_completed', handleRecordingCompleted);
+      socket.off('voice_recording_failed', handleRecordingFailed);
+    };
+  }, [socket, onTranscript]);
 
   useEffect(() => {
     return () => {
@@ -143,6 +186,30 @@ function VoiceInput({ onTranscript, language = 'en-US' }) {
               </span>
             )}
           </div>
+
+          {/* Live Recording Status */}
+          {recordingStatus && (
+            <div className={`voice-status ${recordingStatus}`}>
+              {recordingStatus === 'started' && (
+                <>
+                  <span className="status-dot pulsing"></span>
+                  <span className="status-text">Processing audio...</span>
+                </>
+              )}
+              {recordingStatus === 'completed' && (
+                <>
+                  <span className="status-dot"></span>
+                  <span className="status-text">✓ Transcription complete</span>
+                </>
+              )}
+              {recordingStatus === 'failed' && (
+                <>
+                  <span className="status-dot"></span>
+                  <span className="status-text">✗ Transcription failed</span>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Audio Level Indicator */}
           {isListening && (

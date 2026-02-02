@@ -156,6 +156,55 @@
   color: #4b5563;
 }
 
+/* Voice Status Indicator */
+.voice-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.voice-status.started {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.voice-status.completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.voice-status.failed {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.voice-status .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.voice-status .status-dot.pulsing {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
 /* Audio Visualizer */
 .audio-visualizer {
   width: 100%;
