@@ -1,6 +1,7 @@
 const Craft = require('../models/Craft');
 const Analytics = require('../models/Analytics');
 const { sanitizeTranscript } = require('../utils/sanitizer');
+const { getIO } = require('../config/socket');
 
 /**
  * Get all crafts
@@ -314,6 +315,19 @@ const voiceSearchCrafts = async (req, res) => {
       });
     }
 
+    // Emit socket event that voice search has started
+    try {
+      const io = getIO();
+      io.to(req.user._id.toString()).emit('voice_search_started', {
+        userId: req.user._id,
+        query: query,
+        timestamp: new Date().toISOString(),
+      });
+      console.log(`[SOCKET] Emitted voice_search_started to user ${req.user._id}`);
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit voice_search_started:', socketError.message);
+    }
+
     // Sanitize voice search query
     const sanitizedQuery = sanitizeTranscript(query, {
       maxLength: 200,
@@ -323,6 +337,19 @@ const voiceSearchCrafts = async (req, res) => {
     });
 
     if (!sanitizedQuery || sanitizedQuery.trim() === '') {
+      // Emit search failed event
+      try {
+        const io = getIO();
+        io.to(req.user._id.toString()).emit('voice_search_failed', {
+          userId: req.user._id,
+          query: query,
+          error: 'Invalid search query',
+          timestamp: new Date().toISOString(),
+        });
+      } catch (socketError) {
+        console.error('[SOCKET] Failed to emit voice_search_failed:', socketError.message);
+      }
+
       return res.status(400).json({
         success: false,
         error: 'Invalid search query',
@@ -346,7 +373,7 @@ const voiceSearchCrafts = async (req, res) => {
     // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Execute search with text score
+    // Execute search with text score and stream results
     const crafts = await Craft.find(searchQuery, {
       score: { $meta: 'textScore' },
     })
@@ -357,6 +384,45 @@ const voiceSearchCrafts = async (req, res) => {
 
     // Get total count
     const total = await Craft.countDocuments(searchQuery);
+
+    // Emit progressive search results in real-time
+    try {
+      const io = getIO();
+      const batchSize = 5; // Send results in batches of 5
+      
+      for (let i = 0; i < crafts.length; i += batchSize) {
+        const batch = crafts.slice(i, i + batchSize);
+        const isLastBatch = i + batchSize >= crafts.length;
+        
+        io.to(req.user._id.toString()).emit('voice_search_results', {
+          userId: req.user._id,
+          query: sanitizedQuery,
+          results: batch,
+          batch: Math.floor(i / batchSize) + 1,
+          totalBatches: Math.ceil(crafts.length / batchSize),
+          isComplete: isLastBatch,
+          totalResults: crafts.length,
+          totalCount: total,
+          timestamp: new Date().toISOString(),
+        });
+        
+        console.log(`[SOCKET] Emitted voice_search_results batch ${Math.floor(i / batchSize) + 1} to user ${req.user._id}`);
+      }
+
+      // Emit completion event
+      io.to(req.user._id.toString()).emit('voice_search_completed', {
+        userId: req.user._id,
+        query: sanitizedQuery,
+        totalResults: crafts.length,
+        totalCount: total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+        timestamp: new Date().toISOString(),
+      });
+      console.log(`[SOCKET] Emitted voice_search_completed to user ${req.user._id}`);
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit voice_search_results:', socketError.message);
+    }
 
     // Track voice search in analytics
     try {
@@ -384,6 +450,21 @@ const voiceSearchCrafts = async (req, res) => {
     });
   } catch (error) {
     console.error('Voice search error:', error);
+    
+    // Emit search failed event for exceptions
+    try {
+      const io = getIO();
+      io.to(req.user._id.toString()).emit('voice_search_failed', {
+        userId: req.user._id,
+        query: req.query.query,
+        error: 'Server error',
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit voice_search_failed:', socketError.message);
+    }
+    
     res.status(500).json({
       success: false,
       error: error.message,

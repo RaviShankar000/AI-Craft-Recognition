@@ -85,6 +85,62 @@
   border-color: #ccc;
 }
 
+/* Streaming Status */
+.search-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 1rem auto;
+  max-width: 600px;
+  justify-content: center;
+}
+
+.search-status.started {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.search-status.streaming {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.search-status.completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.search-status.failed {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.search-status .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.search-status .status-dot.pulsing {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
 /* Loading State */
 .search-loading {
   text-align: center;

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import VoiceInput from './VoiceInput';
 import VoiceSearchService from '../services/voiceSearchService';
+import { useSocket } from '../hooks/useSocket';
 import './VoiceSearch.css';
 
 function VoiceSearch() {
@@ -8,6 +9,61 @@ function VoiceSearch() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchStatus, setSearchStatus] = useState(null); // 'started', 'streaming', 'completed', 'failed'
+  const [streamingBatch, setStreamingBatch] = useState(0);
+  const [totalBatches, setTotalBatches] = useState(0);
+  const { socket } = useSocket();
+
+  // Listen for real-time voice search events
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleSearchStarted = (data) => {
+      console.log('[VOICE SEARCH] Started:', data);
+      setSearchStatus('started');
+      setLoading(true);
+      setError(null);
+      setSearchResults([]); // Clear previous results
+      setStreamingBatch(0);
+      setTotalBatches(0);
+    };
+
+    const handleSearchResults = (data) => {
+      console.log('[VOICE SEARCH] Results batch:', data);
+      setSearchStatus('streaming');
+      setStreamingBatch(data.batch);
+      setTotalBatches(data.totalBatches);
+      
+      // Append new results to existing ones
+      setSearchResults(prevResults => [...prevResults, ...data.results]);
+    };
+
+    const handleSearchCompleted = (data) => {
+      console.log('[VOICE SEARCH] Completed:', data);
+      setSearchStatus('completed');
+      setLoading(false);
+    };
+
+    const handleSearchFailed = (data) => {
+      console.error('[VOICE SEARCH] Failed:', data);
+      setSearchStatus('failed');
+      setLoading(false);
+      setError(data.error || data.message || 'Voice search failed');
+      setSearchResults([]);
+    };
+
+    socket.on('voice_search_started', handleSearchStarted);
+    socket.on('voice_search_results', handleSearchResults);
+    socket.on('voice_search_completed', handleSearchCompleted);
+    socket.on('voice_search_failed', handleSearchFailed);
+
+    return () => {
+      socket.off('voice_search_started', handleSearchStarted);
+      socket.off('voice_search_results', handleSearchResults);
+      socket.off('voice_search_completed', handleSearchCompleted);
+      socket.off('voice_search_failed', handleSearchFailed);
+    };
+  }, [socket]);
 
   const handleVoiceTranscript = async (transcript) => {
     // Process and search using voice search service
@@ -31,13 +87,17 @@ function VoiceSearch() {
 
     setLoading(true);
     setError(null);
+    setSearchStatus('started');
 
     try {
       // Use voice search service
       const results = await VoiceSearchService.searchCrafts(query);
 
       if (results.success) {
-        setSearchResults(results.data);
+        // Only update if socket hasn't already provided results
+        if (searchStatus !== 'completed' && searchResults.length === 0) {
+          setSearchResults(results.data);
+        }
         console.log(`Found ${results.count} crafts matching: "${results.query}"`);
       } else {
         setError(results.error || 'Failed to search crafts');
@@ -48,7 +108,9 @@ function VoiceSearch() {
       setError('An error occurred while searching');
       setSearchResults([]);
     } finally {
-      setLoading(false);
+      if (searchStatus !== 'completed') {
+        setLoading(false);
+      }
     }
   };
 
@@ -63,6 +125,9 @@ function VoiceSearch() {
     setSearchQuery('');
     setSearchResults([]);
     setError(null);
+    setSearchStatus(null);
+    setStreamingBatch(0);
+    setTotalBatches(0);
   };
 
   return (
@@ -96,8 +161,38 @@ function VoiceSearch() {
         </div>
       </form>
 
+      {/* Streaming Status */}
+      {searchStatus && (
+        <div className={`search-status ${searchStatus}`}>
+          {searchStatus === 'started' && (
+            <>
+              <span className="status-dot pulsing"></span>
+              <span>Starting search...</span>
+            </>
+          )}
+          {searchStatus === 'streaming' && (
+            <>
+              <span className="status-dot pulsing"></span>
+              <span>Loading results ({streamingBatch}/{totalBatches} batches)...</span>
+            </>
+          )}
+          {searchStatus === 'completed' && (
+            <>
+              <span className="status-dot"></span>
+              <span>✓ Search complete - {searchResults.length} results</span>
+            </>
+          )}
+          {searchStatus === 'failed' && (
+            <>
+              <span className="status-dot"></span>
+              <span>✗ Search failed</span>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Loading State */}
-      {loading && (
+      {loading && !searchStatus && (
         <div className="search-loading">
           <div className="spinner"></div>
           <p>Searching crafts...</p>
