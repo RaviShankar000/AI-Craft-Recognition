@@ -28,6 +28,11 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging middleware
+const { requestLogger, skipLogging } = require('./src/middleware/requestLogger');
+// Skip logging for health checks and static files
+app.use(skipLogging(['/health', '/uploads', '/socket.io']));
+
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
 
