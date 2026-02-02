@@ -8,6 +8,12 @@ const {
   isUserConnected,
   disconnectUser,
 } = require('../handlers/socketHandlers');
+const {
+  getAllEventRoleMappings,
+  getEventsForRole,
+  addEventRoleMapping,
+  removeEventRoleMapping,
+} = require('../middleware/socketEventAuth');
 const { getIO } = require('../config/socket');
 
 /**
@@ -169,6 +175,132 @@ router.get('/health', (req, res) => {
     res.status(503).json({
       success: false,
       message: 'Socket server not available',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * @route   GET /api/socket/events
+ * @desc    Get all event-role mappings (Admin only)
+ * @access  Admin
+ */
+router.get('/events', authenticateToken, authorizeRoles('admin'), (req, res) => {
+  try {
+    const mappings = getAllEventRoleMappings();
+
+    res.json({
+      success: true,
+      data: {
+        mappings,
+        totalEvents: Object.keys(mappings).length,
+      },
+    });
+  } catch (error) {
+    console.error('[SOCKET API] Error getting event mappings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve event mappings',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * @route   GET /api/socket/events/role/:role
+ * @desc    Get events available for a specific role (Admin only)
+ * @access  Admin
+ */
+router.get('/events/role/:role', authenticateToken, authorizeRoles('admin'), (req, res) => {
+  try {
+    const { role } = req.params;
+
+    if (!['admin', 'seller', 'user'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role. Must be: admin, seller, or user',
+      });
+    }
+
+    const events = getEventsForRole(role);
+
+    res.json({
+      success: true,
+      data: {
+        role,
+        events,
+        count: events.length,
+      },
+    });
+  } catch (error) {
+    console.error('[SOCKET API] Error getting events for role:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve events for role',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * @route   POST /api/socket/events/mapping
+ * @desc    Add or update event role mapping (Admin only)
+ * @access  Admin
+ */
+router.post('/events/mapping', authenticateToken, authorizeRoles('admin'), (req, res) => {
+  try {
+    const { eventName, roles } = req.body;
+
+    if (!eventName || !roles) {
+      return res.status(400).json({
+        success: false,
+        message: 'Event name and roles are required',
+      });
+    }
+
+    addEventRoleMapping(eventName, roles);
+
+    res.json({
+      success: true,
+      message: 'Event role mapping added successfully',
+      data: {
+        eventName,
+        roles,
+      },
+    });
+  } catch (error) {
+    console.error('[SOCKET API] Error adding event mapping:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add event mapping',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/socket/events/mapping/:eventName
+ * @desc    Remove event role mapping (Admin only)
+ * @access  Admin
+ */
+router.delete('/events/mapping/:eventName', authenticateToken, authorizeRoles('admin'), (req, res) => {
+  try {
+    const { eventName } = req.params;
+
+    removeEventRoleMapping(eventName);
+
+    res.json({
+      success: true,
+      message: 'Event role mapping removed successfully',
+      data: {
+        eventName,
+      },
+    });
+  } catch (error) {
+    console.error('[SOCKET API] Error removing event mapping:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove event mapping',
       error: error.message,
     });
   }
