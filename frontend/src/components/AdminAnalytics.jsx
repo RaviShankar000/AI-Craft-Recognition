@@ -83,15 +83,33 @@ const AdminAnalytics = () => {
   const fetchLiveStats = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.warn('[ANALYTICS] No authentication token found');
+        setError('Please log in to view analytics');
+        return;
+      }
+
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const response = await fetch(`${apiUrl}/api/admin/analytics/live`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
+      if (response.status === 401) {
+        console.warn('[ANALYTICS] Unauthorized - token may be invalid or expired');
+        setError('Unauthorized. Please log in again.');
+        // Optionally redirect to login
+        // window.location.href = '/login';
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to fetch analytics');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch analytics');
       }
 
       const data = await response.json();
@@ -147,10 +165,21 @@ const AdminAnalytics = () => {
     return (
       <div className="admin-analytics">
         <div className="analytics-error">
-          <p>❌ Error loading analytics: {error}</p>
-          <button onClick={fetchLiveStats} className="retry-button">
-            Retry
-          </button>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+            {error.includes('log in') || error.includes('Unauthorized') ? '🔒' : '❌'}
+          </div>
+          <h3>{error.includes('log in') || error.includes('Unauthorized') ? 'Authentication Required' : 'Error'}</h3>
+          <p>{error}</p>
+          {!error.includes('log in') && !error.includes('Unauthorized') && (
+            <button onClick={fetchLiveStats} className="retry-button">
+              Retry
+            </button>
+          )}
+          {(error.includes('log in') || error.includes('Unauthorized')) && (
+            <button onClick={() => window.location.href = '/login'} className="retry-button">
+              Go to Login
+            </button>
+          )}
         </div>
       </div>
     );
