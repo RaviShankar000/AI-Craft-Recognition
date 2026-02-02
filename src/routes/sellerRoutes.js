@@ -62,26 +62,34 @@ router.delete('/application', protect, cancelApplication);
  * SELLER DASHBOARD ROUTES
  * ============================================================================
  * 
+ * SECURITY: These routes are STRICTLY for sellers and admins only.
+ * Regular users (role: 'user') are BLOCKED by authorize middleware.
+ * 
  * These routes are for approved sellers to manage their business:
  * - View dashboard overview with product and sales statistics
  * - Manage their products
  * - View sales history and revenue
  * 
- * NOTE: Requires seller or admin role
+ * ACCESS CONTROL:
+ * - Regular users (role: 'user') → 403 FORBIDDEN
+ * - Sellers (role: 'seller') → ALLOWED
+ * - Admins (role: 'admin') → ALLOWED
+ * 
+ * NOTE: Regular users must apply and be approved to become sellers first
  * ============================================================================
  */
 
 /**
  * Get seller dashboard overview
  * @route GET /api/seller/dashboard
- * @access Private/Seller
+ * @access Private/Seller (BLOCKS regular users)
  */
 router.get('/dashboard', protect, authorize('seller', 'admin'), getSellerDashboard);
 
 /**
  * Get seller's products with filters
  * @route GET /api/seller/products
- * @access Private/Seller
+ * @access Private/Seller (BLOCKS regular users)
  * @query status - Filter by moderation status (pending/approved/rejected)
  * @query inStock - Filter by stock availability (true/false)
  * @query search - Search by product name or description
@@ -93,7 +101,7 @@ router.get('/products', protect, authorize('seller', 'admin'), getSellerProducts
 /**
  * Get seller's sales summary
  * @route GET /api/seller/sales
- * @access Private/Seller
+ * @access Private/Seller (BLOCKS regular users)
  * @query startDate - Filter from date
  * @query endDate - Filter to date
  * @query page - Page number

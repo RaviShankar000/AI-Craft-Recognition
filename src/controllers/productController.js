@@ -161,6 +161,14 @@ const getProductById = async (req, res) => {
  */
 const createProduct = async (req, res) => {
   try {
+    // Explicit role check - extra security layer
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Only sellers and admins can create products.',
+      });
+    }
+
     const { name, price, stock, craft, image, description, category, sku, discount } = req.body;
 
     // Validate required fields
@@ -242,6 +250,14 @@ const createProduct = async (req, res) => {
  */
 const updateProduct = async (req, res) => {
   try {
+    // Explicit role check - extra security layer
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Only sellers and admins can update products.',
+      });
+    }
+
     const { name, price, stock, craft, image, description, category, sku, discount, isAvailable } =
       req.body;
 
@@ -350,6 +366,14 @@ const updateProduct = async (req, res) => {
  */
 const deleteProduct = async (req, res) => {
   try {
+    // Explicit role check - extra security layer
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Only sellers and admins can delete products.',
+      });
+    }
+
     // Find product - admins can delete any product, sellers only their own
     const query = { _id: req.params.id };
     if (req.user.role !== 'admin') {
@@ -399,10 +423,18 @@ const deleteProduct = async (req, res) => {
 /**
  * Update product stock
  * @route PATCH /api/products/:id/stock
- * @access Private
+ * @access Private/Seller
  */
 const updateProductStock = async (req, res) => {
   try {
+    // Explicit role check - extra security layer
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Only sellers and admins can update product stock.',
+      });
+    }
+
     const { quantity, operation } = req.body;
 
     // Validate input

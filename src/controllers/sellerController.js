@@ -331,6 +331,14 @@ const rejectApplication = async (req, res) => {
  */
 const getSellerDashboard = async (req, res) => {
   try {
+    // Explicit role check - extra security layer
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. This route is only for sellers and admins.',
+      });
+    }
+
     // Get total products count
     const totalProducts = await Product.countDocuments({ user: req.user._id });
 
@@ -421,6 +429,14 @@ const getSellerDashboard = async (req, res) => {
  */
 const getSellerProducts = async (req, res) => {
   try {
+    // Explicit role check - extra security layer
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. This route is only for sellers and admins.',
+      });
+    }
+
     const {
       status,
       page = 1,
@@ -488,6 +504,14 @@ const getSellerProducts = async (req, res) => {
  */
 const getSellerSales = async (req, res) => {
   try {
+    // Explicit role check - extra security layer
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. This route is only for sellers and admins.',
+      });
+    }
+
     const { startDate, endDate, page = 1, limit = 10 } = req.query;
 
     // Get seller's products
