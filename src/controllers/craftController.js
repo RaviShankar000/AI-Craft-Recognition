@@ -1,6 +1,7 @@
 const Craft = require('../models/Craft');
 const Analytics = require('../models/Analytics');
 const AnalyticsService = require('../services/analyticsService');
+const eventThrottler = require('../utils/eventThrottler');
 const { sanitizeTranscript } = require('../utils/sanitizer');
 const { getIO } = require('../config/socket');
 
@@ -63,20 +64,30 @@ const getAllCrafts = async (req, res) => {
           browser: getBrowser(req.headers['user-agent']),
         });
         
-        // Emit realtime analytics event for search
+        // Emit realtime analytics event for search (throttled)
         try {
           const io = getIO();
-          io.to('role:admin').emit('analytics:search', {
+          const eventData = {
             userId: req.user._id,
             query: search,
             searchType: 'text',
             resultsCount: crafts.length,
             timestamp: new Date().toISOString(),
-          });
+          };
           
-          // Broadcast updated analytics stats to admins
-          AnalyticsService.broadcastUpdatedStats().catch(err => 
-            console.error('Failed to broadcast updated stats:', err.message)
+          eventThrottler.throttle(
+            'analytics:search',
+            (data) => io.to('role:admin').emit('analytics:search', data),
+            eventData
+          );
+          
+          // Broadcast updated analytics stats to admins (throttled)
+          eventThrottler.throttle(
+            'analytics:live_stats',
+            () => AnalyticsService.broadcastUpdatedStats().catch(err => 
+              console.error('Failed to broadcast updated stats:', err.message)
+            ),
+            {}
           );
         } catch (socketError) {
           console.error('[SOCKET] Failed to emit analytics:search:', socketError.message);
@@ -186,20 +197,30 @@ const getCraftById = async (req, res) => {
           ipAddress: req.ip || req.connection.remoteAddress,
         });
         
-        // Emit realtime analytics event for craft view
+        // Emit realtime analytics event for craft view (throttled)
         try {
           const io = getIO();
-          io.to('role:admin').emit('analytics:craft_view', {
+          const eventData = {
             userId: req.user._id,
             craftId: craft._id,
             craftName: craft.name,
             category: craft.category,
             timestamp: new Date().toISOString(),
-          });
+          };
           
-          // Broadcast updated analytics stats to admins
-          AnalyticsService.broadcastUpdatedStats().catch(err => 
-            console.error('Failed to broadcast updated stats:', err.message)
+          eventThrottler.throttle(
+            'analytics:craft_view',
+            (data) => io.to('role:admin').emit('analytics:craft_view', data),
+            eventData
+          );
+          
+          // Broadcast updated analytics stats to admins (throttled)
+          eventThrottler.throttle(
+            'analytics:live_stats',
+            () => AnalyticsService.broadcastUpdatedStats().catch(err => 
+              console.error('Failed to broadcast updated stats:', err.message)
+            ),
+            {}
           );
         } catch (socketError) {
           console.error('[SOCKET] Failed to emit analytics:craft_view:', socketError.message);
@@ -475,20 +496,30 @@ const voiceSearchCrafts = async (req, res) => {
         browser: getBrowser(req.headers['user-agent']),
       });
       
-      // Emit realtime analytics event for voice search
+      // Emit realtime analytics event for voice search (throttled)
       try {
         const io = getIO();
-        io.to('role:admin').emit('analytics:search', {
+        const eventData = {
           userId: req.user._id,
           query: sanitizedQuery,
           searchType: 'voice',
           resultsCount: crafts.length,
           timestamp: new Date().toISOString(),
-        });
+        };
         
-        // Broadcast updated analytics stats to admins
-        AnalyticsService.broadcastUpdatedStats().catch(err => 
-          console.error('Failed to broadcast updated stats:', err.message)
+        eventThrottler.throttle(
+          'analytics:search',
+          (data) => io.to('role:admin').emit('analytics:search', data),
+          eventData
+        );
+        
+        // Broadcast updated analytics stats to admins (throttled)
+        eventThrottler.throttle(
+          'analytics:live_stats',
+          () => AnalyticsService.broadcastUpdatedStats().catch(err => 
+            console.error('Failed to broadcast updated stats:', err.message)
+          ),
+          {}
         );
       } catch (socketError) {
         console.error('[SOCKET] Failed to emit analytics:search:', socketError.message);

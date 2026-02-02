@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const AnalyticsService = require('../services/analyticsService');
+const eventThrottler = require('../utils/eventThrottler');
 const {
   logUserRoleChanged,
   logUserAccountStatusChanged,
@@ -238,6 +239,64 @@ router.get('/analytics/conversion-funnel', async (req, res) => {
     res.status(200).json({
       success: true,
       data: funnel,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Get event throttle statistics
+ * @route GET /api/admin/analytics/throttle-stats
+ * @access Private/Admin
+ */
+router.get('/analytics/throttle-stats', (req, res) => {
+  try {
+    const stats = eventThrottler.getStats();
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Update throttle interval for an event type
+ * @route PATCH /api/admin/analytics/throttle-interval
+ * @access Private/Admin
+ */
+router.patch('/analytics/throttle-interval', (req, res) => {
+  try {
+    const { eventType, interval } = req.body;
+    
+    if (!eventType || !interval) {
+      return res.status(400).json({
+        success: false,
+        error: 'Event type and interval are required',
+      });
+    }
+    
+    if (interval < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Interval must be positive',
+      });
+    }
+    
+    eventThrottler.setInterval(eventType, parseInt(interval));
+    
+    res.status(200).json({
+      success: true,
+      message: `Throttle interval for ${eventType} updated to ${interval}ms`,
+      data: eventThrottler.getStats(),
     });
   } catch (error) {
     res.status(500).json({
