@@ -7,7 +7,7 @@ import { usePollingFallback } from './usePollingFallback';
  * Custom hook to handle real-time notifications
  */
 export const useNotifications = () => {
-  const socket = useContext(SocketContext);
+  const { socket } = useContext(SocketContext);
   const toast = useToast();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);

@@ -4,7 +4,7 @@ import ChatbotService from '../services/chatbotService';
 import './Chatbot.css';
 
 const Chatbot = () => {
-  const socket = useContext(SocketContext);
+  const { socket, isConnected } = useContext(SocketContext);
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -29,7 +29,10 @@ const Chatbot = () => {
 
   // Setup Socket.IO listeners for streaming
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !socket.connected) {
+      console.log('[CHATBOT] Socket not ready:', socket);
+      return;
+    }
 
     const cleanup = ChatbotService.setupStreamingListeners(socket, {
       onStarted: (data) => {

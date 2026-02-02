@@ -83,7 +83,8 @@ const AdminAnalytics = () => {
   const fetchLiveStats = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/analytics/live', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/admin/analytics/live`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
