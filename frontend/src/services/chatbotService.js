@@ -1,20 +1,23 @@
 import apiClient from './api';
 
 /**
- * Chatbot Service - Handles chatbot interactions
+ * Chatbot Service - Handles chatbot interactions with streaming support
  */
 class ChatbotService {
   /**
-   * Send message to chatbot
+   * Send message to chatbot (HTTP fallback - use streaming for real-time)
    * @param {String} message - User message
    * @param {Object} context - Conversation context
    * @returns {Promise} Chatbot response
    */
   static async sendMessage(message, context = {}) {
     try {
+      const userId = localStorage.getItem('userId') || 'anonymous';
+      
       const response = await apiClient.post('/chatbot/message', {
         message,
         context,
+        userId,
       });
 
       return {
@@ -29,6 +32,75 @@ class ChatbotService {
         message: error.response?.data?.message || error.message,
       };
     }
+  }
+
+  /**
+   * Set up chatbot streaming event listeners
+   * @param {Object} socket - Socket.IO instance
+   * @param {Object} callbacks - Event callbacks
+   * @returns {Function} Cleanup function to remove listeners
+   */
+  static setupStreamingListeners(socket, callbacks = {}) {
+    const {
+      onStarted = () => {},
+      onToken = () => {},
+      onCompleted = () => {},
+      onError = () => {},
+    } = callbacks;
+
+    // Chatbot started event
+    const handleStarted = (data) => {
+      console.log('Chatbot started:', data);
+      onStarted(data);
+    };
+
+    // Token streaming event
+    const handleToken = (data) => {
+      console.log('Chatbot token:', data.token);
+      onToken(data);
+    };
+
+    // Chatbot completed event
+    const handleCompleted = (data) => {
+      console.log('Chatbot completed:', data);
+      onCompleted(data);
+    };
+
+    // Chatbot error event
+    const handleError = (data) => {
+      console.error('Chatbot error:', data);
+      onError(data);
+    };
+
+    // Register listeners
+    socket.on('chatbot_started', handleStarted);
+    socket.on('chatbot_token', handleToken);
+    socket.on('chatbot_completed', handleCompleted);
+    socket.on('chatbot_error', handleError);
+
+    // Return cleanup function
+    return () => {
+      socket.off('chatbot_started', handleStarted);
+      socket.off('chatbot_token', handleToken);
+      socket.off('chatbot_completed', handleCompleted);
+      socket.off('chatbot_error', handleError);
+    };
+  }
+
+  /**
+   * Send streaming message via Socket.IO
+   * @param {Object} socket - Socket.IO instance
+   * @param {String} message - User message
+   * @param {Object} context - Conversation context
+   */
+  static sendStreamingMessage(socket, message, context = {}) {
+    const userId = localStorage.getItem('userId') || 'anonymous';
+    
+    // Join user-specific room
+    socket.emit('join_room', userId);
+    
+    // Send message via HTTP (which triggers streaming via Socket.IO)
+    return this.sendMessage(message, context);
   }
 
   /**

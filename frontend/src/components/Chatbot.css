@@ -445,3 +445,34 @@
     padding: 0.625rem 0.875rem;
   }
 }
+
+/* Streaming cursor animation */
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+  color: #667eea;
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Streaming message highlight */
+.message-bubble.streaming {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  }
+  50% {
+    box-shadow: 0 2px 12px rgba(102, 126, 234, 0.3);
+  }
+}
