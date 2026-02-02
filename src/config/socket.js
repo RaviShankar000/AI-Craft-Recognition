@@ -17,6 +17,11 @@ const {
   registerSecureEvent,
   getEventsForRole,
 } = require('../middleware/socketEventAuth');
+const {
+  logger,
+  createLoggingMiddleware,
+  printStats,
+} = require('../utils/socketDebugLogger');
 
 /**
  * Initialize Socket.IO server with authentication
@@ -36,11 +41,15 @@ const initializeSocket = server => {
     transports: ['websocket', 'polling'],
   });
 
+  // Apply logging middleware (must be first for complete logging)
+  io.use(createLoggingMiddleware());
+
   // Apply authentication middleware to all connections
   io.use(authenticateSocket);
 
   // Handle connection errors (before successful connection)
   io.engine.on('connection_error', err => {
+    logger.error(null, 'connection_error', err);
     handleConnectionError(null, err);
   });
 
@@ -315,8 +324,19 @@ const initializeSocket = server => {
     broadcastConnectionStats(io);
   }, 30000);
 
+  // Print socket statistics every 5 minutes in development
+  if (config.nodeEnv === 'development') {
+    setInterval(() => {
+      printStats();
+    }, 300000); // 5 minutes
+  }
+
   console.log('[SOCKET] Socket.IO server initialized with JWT authentication');
   console.log('[SOCKET] Connection lifecycle handlers registered');
+  logger.info('Socket.IO server initialized', {
+    environment: config.nodeEnv,
+    debugLogging: process.env.DEBUG_SOCKET === 'true' || config.nodeEnv === 'development',
+  });
 
   return io;
 };

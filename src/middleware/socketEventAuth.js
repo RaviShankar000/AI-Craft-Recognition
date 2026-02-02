@@ -1,4 +1,5 @@
 const AuditLog = require('../models/AuditLog');
+const { logger } = require('../utils/socketDebugLogger');
 
 /**
  * Role-Based Socket Event Authorization
@@ -101,6 +102,9 @@ const authorizeEvent = eventName => {
         socketId: socket.id,
       });
 
+      // Debug log authorization failure
+      logger.auth(socket, eventName, false, getAllowedRoles(eventName));
+
       // Log unauthorized attempt
       AuditLog.log({
         userId,
@@ -136,6 +140,9 @@ const authorizeEvent = eventName => {
       userRole,
       socketId: socket.id,
     });
+
+    // Debug log successful authorization
+    logger.auth(socket, eventName, true, getAllowedRoles(eventName));
 
     return true;
   };
@@ -406,6 +413,9 @@ const registerSecureEvent = (socket, eventName, handler, options = {}) => {
             error: validation.error,
           });
 
+          // Debug log validation failure
+          logger.validation(socket, eventName, false, validation.error);
+
           socket.emit('error:validation', error);
           if (typeof callback === 'function') {
             callback(error);
@@ -419,8 +429,17 @@ const registerSecureEvent = (socket, eventName, handler, options = {}) => {
 
       // 4. Execute handler
       await handler(transformedData, callback);
+
+      // Debug log successful validation
+      if (options.validate !== false) {
+        logger.validation(socket, eventName, true);
+      }
     } catch (error) {
       console.error(`[SOCKET AUTHZ] Error handling event ${eventName}:`, error);
+      
+      // Debug log error
+      logger.error(socket, eventName, error);
+      
       socket.emit('error:internal', {
         code: 'INTERNAL_ERROR',
         message: 'An error occurred processing your request',

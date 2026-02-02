@@ -1,4 +1,5 @@
 const AuditLog = require('../models/AuditLog');
+const { logger } = require('../utils/socketDebugLogger');
 
 /**
  * Socket Event Handlers for Connection Lifecycle
@@ -38,6 +39,10 @@ const handleConnection = socket => {
   // Join role-based room
   socket.join(`role:${userRole}`);
   console.log(`[SOCKET] User ${userId} joined room: role:${userRole}`);
+
+  // Debug log room joins
+  logger.room(socket, 'JOIN', `user:${userId}`);
+  logger.room(socket, 'JOIN', `role:${userRole}`);
 
   // Send welcome message
   socket.emit('connection:success', {

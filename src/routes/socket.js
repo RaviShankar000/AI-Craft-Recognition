@@ -14,6 +14,12 @@ const {
   addEventRoleMapping,
   removeEventRoleMapping,
 } = require('../middleware/socketEventAuth');
+const {
+  getStats,
+  resetStats,
+  setDebugEnabled,
+  isEnabled,
+} = require('../utils/socketDebugLogger');
 const { getIO } = require('../config/socket');
 
 /**
@@ -301,6 +307,90 @@ router.delete('/events/mapping/:eventName', authenticateToken, authorizeRoles('a
     res.status(500).json({
       success: false,
       message: 'Failed to remove event mapping',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * @route   GET /api/socket/debug/stats
+ * @desc    Get socket debug statistics (Admin only)
+ * @access  Admin
+ */
+router.get('/debug/stats', authenticateToken, authorizeRoles('admin'), (req, res) => {
+  try {
+    const stats = getStats();
+
+    res.json({
+      success: true,
+      data: {
+        ...stats,
+        debugEnabled: isEnabled(),
+      },
+    });
+  } catch (error) {
+    console.error('[SOCKET API] Error getting debug stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve debug statistics',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * @route   POST /api/socket/debug/reset
+ * @desc    Reset socket debug statistics (Admin only)
+ * @access  Admin
+ */
+router.post('/debug/reset', authenticateToken, authorizeRoles('admin'), (req, res) => {
+  try {
+    resetStats();
+
+    res.json({
+      success: true,
+      message: 'Debug statistics reset successfully',
+    });
+  } catch (error) {
+    console.error('[SOCKET API] Error resetting debug stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset debug statistics',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * @route   POST /api/socket/debug/toggle
+ * @desc    Toggle debug logging on/off (Admin only)
+ * @access  Admin
+ */
+router.post('/debug/toggle', authenticateToken, authorizeRoles('admin'), (req, res) => {
+  try {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'enabled field must be a boolean',
+      });
+    }
+
+    setDebugEnabled(enabled);
+
+    res.json({
+      success: true,
+      message: `Debug logging ${enabled ? 'enabled' : 'disabled'}`,
+      data: {
+        debugEnabled: enabled,
+      },
+    });
+  } catch (error) {
+    console.error('[SOCKET API] Error toggling debug logging:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to toggle debug logging',
       error: error.message,
     });
   }
