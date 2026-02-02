@@ -1,10 +1,12 @@
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const mongoose = require('mongoose');
 require('dotenv').config();
 const connectDB = require('./src/config/database');
 const config = require('./src/config/env');
 const { initializeSocket, setIO } = require('./src/config/socket');
+const { initGracefulShutdown } = require('./src/utils/gracefulShutdown');
 
 const app = express();
 const server = http.createServer(app);
@@ -115,5 +117,8 @@ server.listen(config.port, () => {
   console.log(`Environment: ${config.nodeEnv}`);
   console.log(`Socket.IO enabled with JWT authentication`);
 });
+
+// Initialize graceful shutdown handlers
+initGracefulShutdown(server, io, mongoose);
 
 module.exports = { app, server, io };
