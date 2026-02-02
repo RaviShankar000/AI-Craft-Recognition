@@ -39,6 +39,11 @@
   color: #2e7d32;
 }
 
+.live-status.failed {
+  background: #ffebee;
+  color: #c62828;
+}
+
 .status-dot {
   width: 8px;
   height: 8px;
@@ -48,6 +53,10 @@
 
 .live-status.completed .status-dot {
   background-color: #2e7d32;
+}
+
+.live-status.failed .status-dot {
+  background-color: #c62828;
 }
 
 .status-dot.pulsing {

@@ -77,6 +77,22 @@ const predictCraft = async (req, res) => {
       // Log error for monitoring
       console.error('AI prediction failed:', result.error, result.message);
 
+      // Emit socket event to notify frontend that recognition failed
+      try {
+        const io = getIO();
+        io.to(req.user._id.toString()).emit('recognition_failed', {
+          userId: req.user._id,
+          filename: req.file.originalname,
+          error: result.error,
+          message: result.message,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[SOCKET] Emitted recognition_failed to user ${req.user._id}`);
+      } catch (socketError) {
+        // Log socket error but don't block the response
+        console.error('[SOCKET] Failed to emit recognition_failed:', socketError.message);
+      }
+
       return res.status(result.status || 500).json({
         success: false,
         error: result.error,
@@ -128,6 +144,24 @@ const predictCraft = async (req, res) => {
     });
   } catch (error) {
     console.error('Prediction controller error:', error);
+    
+    // Emit socket event for unexpected errors
+    try {
+      const io = getIO();
+      if (req.user && req.user._id) {
+        io.to(req.user._id.toString()).emit('recognition_failed', {
+          userId: req.user._id,
+          filename: req.file?.originalname || 'unknown',
+          error: 'Server error',
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[SOCKET] Emitted recognition_failed (exception) to user ${req.user._id}`);
+      }
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit recognition_failed:', socketError.message);
+    }
+    
     res.status(500).json({
       success: false,
       error: 'Server error',

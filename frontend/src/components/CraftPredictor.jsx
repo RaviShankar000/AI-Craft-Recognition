@@ -43,12 +43,24 @@ function CraftPredictor() {
       });
     };
 
+    const handleRecognitionFailed = (data) => {
+      console.error('[RECOGNITION] Failed:', data);
+      setRecognitionStatus('failed');
+      setLoading(false);
+      setPrediction(null);
+      
+      // Display error message from backend
+      setError(data.message || data.error || 'Recognition failed. Please try again.');
+    };
+
     socket.on('recognition_started', handleRecognitionStarted);
     socket.on('recognition_completed', handleRecognitionCompleted);
+    socket.on('recognition_failed', handleRecognitionFailed);
 
     return () => {
       socket.off('recognition_started', handleRecognitionStarted);
       socket.off('recognition_completed', handleRecognitionCompleted);
+      socket.off('recognition_failed', handleRecognitionFailed);
     };
   }, [socket]);
 
@@ -175,6 +187,12 @@ function CraftPredictor() {
           <div className="live-status completed">
             <span className="status-dot"></span>
             <span className="status-text">✓ Results updated live</span>
+          </div>
+        )}
+        {recognitionStatus === 'failed' && (
+          <div className="live-status failed">
+            <span className="status-dot"></span>
+            <span className="status-text">✗ Recognition failed</span>
           </div>
         )}
       </div>
