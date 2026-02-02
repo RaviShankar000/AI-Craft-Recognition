@@ -8,6 +8,7 @@ import Chatbot from './components/Chatbot';
 import Marketplace from './components/Marketplace';
 import Cart from './components/Cart';
 import OrderHistory from './components/OrderHistory';
+import AdminAnalytics from './components/AdminAnalytics';
 
 function App() {
   return (
@@ -26,7 +27,7 @@ function App() {
           <Route path="products" element={<Marketplace />} />
           <Route path="cart" element={<Cart />} />
           <Route path="orders" element={<OrderHistory />} />
-          <Route path="analytics" element={<div>Analytics Page</div>} />
+          <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="chatbot" element={<Chatbot />} />
         </Route>
       </Routes>
