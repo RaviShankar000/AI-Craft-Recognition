@@ -1,0 +1,147 @@
+.socket-status-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  min-width: 300px;
+  max-width: 400px;
+  z-index: 1000;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.socket-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #f5f5f5;
+}
+
+.socket-status.online {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.socket-status.offline {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.socket-status.online .status-indicator {
+  background: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+  animation: pulse 2s infinite;
+}
+
+.socket-status.offline .status-indicator {
+  background: #f44336;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.socket-id {
+  font-size: 11px;
+  opacity: 0.7;
+  font-family: 'Courier New', monospace;
+}
+
+.connection-error {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #fff3cd;
+  border-left: 3px solid #ffc107;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #856404;
+}
+
+.socket-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.ping-button {
+  padding: 8px 16px;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.ping-button:hover {
+  background: #1976d2;
+}
+
+.ping-button:active {
+  transform: scale(0.98);
+}
+
+.notifications-list {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.notifications-list h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.notification-item {
+  padding: 6px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notif-time {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+}
+
+.notif-message {
+  color: #333;
+  word-break: break-word;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .socket-status-container {
+    bottom: 10px;
+    right: 10px;
+    min-width: 250px;
+    max-width: calc(100vw - 40px);
+  }
+}

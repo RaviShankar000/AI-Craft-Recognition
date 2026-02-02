@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import SocketStatus from './SocketStatus';
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
@@ -22,6 +23,7 @@ const DashboardLayout = () => {
           </div>
         </main>
       </div>
+      <SocketStatus />
     </div>
   );
 };
