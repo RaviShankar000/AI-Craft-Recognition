@@ -1,6 +1,18 @@
 const { Server } = require('socket.io');
 const { authenticateSocket } = require('../middleware/socketAuth');
 const config = require('../config/env');
+const {
+  handleConnection,
+  handleDisconnection,
+  handleError,
+  handleConnectionError,
+  handlePing,
+  handleReconnectAttempt,
+  handleReconnect,
+  handleAuthError,
+  handleTimeout,
+  broadcastConnectionStats,
+} = require('../handlers/socketHandlers');
 
 /**
  * Initialize Socket.IO server with authentication
@@ -16,52 +28,72 @@ const initializeSocket = server => {
     },
     pingTimeout: 60000,
     pingInterval: 25000,
+    connectTimeout: 45000,
+    transports: ['websocket', 'polling'],
   });
 
   // Apply authentication middleware to all connections
   io.use(authenticateSocket);
 
+  // Handle connection errors (before successful connection)
+  io.engine.on('connection_error', err => {
+    handleConnectionError(null, err);
+  });
+
   // Handle connections
   io.on('connection', socket => {
-    console.log('[SOCKET] New authenticated connection:', {
-      socketId: socket.id,
-      userId: socket.userId,
-      email: socket.userEmail,
-      role: socket.userRole,
-    });
-
-    // Join user to their personal room
-    socket.join(`user:${socket.userId}`);
-
-    // Join role-based rooms
-    socket.join(`role:${socket.userRole}`);
+    // Handle successful connection
+    handleConnection(socket);
 
     // Handle disconnection
     socket.on('disconnect', reason => {
-      console.log('[SOCKET] User disconnected:', {
-        socketId: socket.id,
-        userId: socket.userId,
-        email: socket.userEmail,
-        reason,
-      });
+      handleDisconnection(socket, reason);
     });
 
-    // Handle errors
+    // Handle socket errors
     socket.on('error', error => {
-      console.error('[SOCKET] Socket error:', {
-        socketId: socket.id,
-        userId: socket.userId,
-        error: error.message,
-      });
+      handleError(socket, error);
     });
 
-    // Ping-pong for connection health
-    socket.on('ping', () => {
-      socket.emit('pong', { timestamp: Date.now() });
+    // Handle ping-pong for connection health
+    socket.on('ping', data => {
+      handlePing(socket, data);
+    });
+
+    // Handle reconnection attempts
+    socket.on('reconnect_attempt', attemptNumber => {
+      handleReconnectAttempt(socket, attemptNumber);
+    });
+
+    // Handle successful reconnection
+    socket.on('reconnect', () => {
+      handleReconnect(socket);
+    });
+
+    // Handle authentication errors
+    socket.on('auth_error', error => {
+      handleAuthError(socket, error);
+    });
+
+    // Handle connection timeout
+    socket.on('connect_timeout', () => {
+      handleTimeout(socket);
+    });
+
+    // Handle custom disconnect request
+    socket.on('disconnect_request', () => {
+      console.log('[SOCKET] Client requested disconnect:', socket.id);
+      socket.disconnect(true);
     });
   });
 
+  // Broadcast connection statistics to admins every 30 seconds
+  setInterval(() => {
+    broadcastConnectionStats(io);
+  }, 30000);
+
   console.log('[SOCKET] Socket.IO server initialized with JWT authentication');
+  console.log('[SOCKET] Connection lifecycle handlers registered');
 
   return io;
 };
