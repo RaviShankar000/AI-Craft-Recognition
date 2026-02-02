@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback, useContext } from 'react';
 import { SocketContext } from '../context/SocketContext';
+import { useToast } from '../components/ToastProvider';
 
 /**
  * Custom hook to handle real-time notifications
  */
 export const useNotifications = () => {
   const socket = useContext(SocketContext);
+  const toast = useToast();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -21,12 +23,19 @@ export const useNotifications = () => {
     setNotifications((prev) => [notificationWithId, ...prev].slice(0, 50)); // Keep last 50
     setUnreadCount((prev) => prev + 1);
 
+    // Show toast notification
+    const toastType = notification.type?.includes('approved') ? 'success' : 
+                     notification.type?.includes('rejected') ? 'error' : 
+                     notification.priority === 'high' ? 'warning' : 'info';
+    
+    toast[toastType](notification.message, 7000);
+
     // Play notification sound (optional)
     playNotificationSound();
 
     // Show browser notification if permitted
     showBrowserNotification(notification);
-  }, []);
+  }, [toast]);
 
   // Mark notification as read
   const markAsRead = useCallback((notificationId) => {
