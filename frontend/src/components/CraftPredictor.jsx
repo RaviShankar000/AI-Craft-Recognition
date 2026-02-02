@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import AIService from '../services/aiService';
+import { useSocket } from '../hooks/useSocket';
 import './CraftPredictor.css';
 
 function CraftPredictor() {
@@ -9,7 +10,47 @@ function CraftPredictor() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [processingTime, setProcessingTime] = useState(null);
+  const [recognitionStatus, setRecognitionStatus] = useState(null); // 'started', 'processing', 'completed'
   const abortControllerRef = useRef(null);
+  const { socket } = useSocket();
+
+  // Listen for real-time recognition events
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRecognitionStarted = (data) => {
+      console.log('[RECOGNITION] Started:', data);
+      setRecognitionStatus('started');
+      setLoading(true);
+      setError(null);
+    };
+
+    const handleRecognitionCompleted = (data) => {
+      console.log('[RECOGNITION] Completed:', data);
+      setRecognitionStatus('completed');
+      setLoading(false);
+      
+      // Update UI with live results from socket
+      setPrediction({
+        craftName: data.craftName,
+        confidence: data.confidence,
+        allPredictions: data.allPredictions || [],
+      });
+      
+      setProcessingTime({
+        server: data.processingTime,
+        total: data.totalTime,
+      });
+    };
+
+    socket.on('recognition_started', handleRecognitionStarted);
+    socket.on('recognition_completed', handleRecognitionCompleted);
+
+    return () => {
+      socket.off('recognition_started', handleRecognitionStarted);
+      socket.off('recognition_completed', handleRecognitionCompleted);
+    };
+  }, [socket]);
 
   const handleImageSelect = (event) => {
     const file = event.target.files[0];
@@ -54,6 +95,7 @@ function CraftPredictor() {
 
     setLoading(true);
     setError(null);
+    setRecognitionStatus('processing');
     const startTime = performance.now();
 
     try {
@@ -63,12 +105,15 @@ function CraftPredictor() {
         const endTime = performance.now();
         const clientTime = ((endTime - startTime) / 1000).toFixed(2);
         
-        setPrediction(result.data);
-        setProcessingTime({
-          client: clientTime,
-          server: result.data.processingTime,
-          total: result.data.totalTime,
-        });
+        // Only update if socket didn't already update
+        if (recognitionStatus !== 'completed') {
+          setPrediction(result.data);
+          setProcessingTime({
+            client: clientTime,
+            server: result.data.processingTime,
+            total: result.data.totalTime,
+          });
+        }
       } else {
         setError(result.error || 'Failed to predict craft type');
       }
@@ -76,7 +121,9 @@ function CraftPredictor() {
       console.error('Prediction error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
-      setLoading(false);
+      if (recognitionStatus !== 'completed') {
+        setLoading(false);
+      }
     }
   };
 
@@ -92,6 +139,7 @@ function CraftPredictor() {
     setError(null);
     setProcessingTime(null);
     setLoading(false);
+    setRecognitionStatus(null);
   };
 
   const getConfidenceColor = (confidence) => {
@@ -109,6 +157,26 @@ function CraftPredictor() {
       <div className="predictor-header">
         <h2>AI Craft Recognition</h2>
         <p>Upload an image to identify the craft type</p>
+        
+        {/* Live Status Indicator */}
+        {recognitionStatus === 'started' && (
+          <div className="live-status">
+            <span className="status-dot pulsing"></span>
+            <span className="status-text">Recognition starting...</span>
+          </div>
+        )}
+        {recognitionStatus === 'processing' && (
+          <div className="live-status">
+            <span className="status-dot pulsing"></span>
+            <span className="status-text">Processing image...</span>
+          </div>
+        )}
+        {recognitionStatus === 'completed' && (
+          <div className="live-status completed">
+            <span className="status-dot"></span>
+            <span className="status-text">✓ Results updated live</span>
+          </div>
+        )}
       </div>
 
       <div className="predictor-content">
