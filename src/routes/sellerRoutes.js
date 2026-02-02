@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const {
   applyForSeller,
   getApplicationStatus,
   cancelApplication,
+  getSellerDashboard,
+  getSellerProducts,
+  getSellerSales,
 } = require('../controllers/sellerController');
 
 /**
@@ -53,5 +56,49 @@ router.get('/application/status', protect, getApplicationStatus);
  * @access Private
  */
 router.delete('/application', protect, cancelApplication);
+
+/**
+ * ============================================================================
+ * SELLER DASHBOARD ROUTES
+ * ============================================================================
+ * 
+ * These routes are for approved sellers to manage their business:
+ * - View dashboard overview with product and sales statistics
+ * - Manage their products
+ * - View sales history and revenue
+ * 
+ * NOTE: Requires seller or admin role
+ * ============================================================================
+ */
+
+/**
+ * Get seller dashboard overview
+ * @route GET /api/seller/dashboard
+ * @access Private/Seller
+ */
+router.get('/dashboard', protect, authorize('seller', 'admin'), getSellerDashboard);
+
+/**
+ * Get seller's products with filters
+ * @route GET /api/seller/products
+ * @access Private/Seller
+ * @query status - Filter by moderation status (pending/approved/rejected)
+ * @query inStock - Filter by stock availability (true/false)
+ * @query search - Search by product name or description
+ * @query page - Page number
+ * @query limit - Items per page
+ */
+router.get('/products', protect, authorize('seller', 'admin'), getSellerProducts);
+
+/**
+ * Get seller's sales summary
+ * @route GET /api/seller/sales
+ * @access Private/Seller
+ * @query startDate - Filter from date
+ * @query endDate - Filter to date
+ * @query page - Page number
+ * @query limit - Items per page
+ */
+router.get('/sales', protect, authorize('seller', 'admin'), getSellerSales);
 
 module.exports = router;

@@ -1,5 +1,7 @@
 const SellerApplication = require('../models/SellerApplication');
 const User = require('../models/User');
+const Product = require('../models/Product');
+const Order = require('../models/Order');
 
 /**
  * Apply to become a seller
@@ -316,6 +318,275 @@ const rejectApplication = async (req, res) => {
   }
 };
 
+/**
+ * ============================================================================
+ * SELLER DASHBOARD - Product and Sales Management
+ * ============================================================================
+ */
+
+/**
+ * Get seller dashboard overview
+ * @route GET /api/seller/dashboard
+ * @access Private/Seller
+ */
+const getSellerDashboard = async (req, res) => {
+  try {
+    // Get total products count
+    const totalProducts = await Product.countDocuments({ user: req.user._id });
+
+    // Get products by moderation status
+    const [pendingProducts, approvedProducts, rejectedProducts] = await Promise.all([
+      Product.countDocuments({ user: req.user._id, moderationStatus: 'pending' }),
+      Product.countDocuments({ user: req.user._id, moderationStatus: 'approved' }),
+      Product.countDocuments({ user: req.user._id, moderationStatus: 'rejected' }),
+    ]);
+
+    // Get total orders for seller's products
+    const sellerProducts = await Product.find({ user: req.user._id }).select('_id');
+    const productIds = sellerProducts.map(p => p._id);
+
+    const orders = await Order.find({
+      'items.product': { $in: productIds },
+    }).populate('items.product', 'name price user');
+
+    // Filter to only include items for this seller's products
+    let totalOrders = 0;
+    let totalRevenue = 0;
+    let pendingOrders = 0;
+    let completedOrders = 0;
+
+    orders.forEach(order => {
+      const sellerItems = order.items.filter(
+        item => item.product && item.product.user.toString() === req.user._id.toString()
+      );
+
+      if (sellerItems.length > 0) {
+        totalOrders++;
+        if (order.status === 'pending' || order.status === 'processing') {
+          pendingOrders++;
+        } else if (order.status === 'delivered') {
+          completedOrders++;
+        }
+
+        // Calculate revenue from seller's items in this order
+        sellerItems.forEach(item => {
+          totalRevenue += item.price * item.quantity;
+        });
+      }
+    });
+
+    // Get low stock products (stock < 10)
+    const lowStockProducts = await Product.countDocuments({
+      user: req.user._id,
+      stock: { $lt: 10, $gt: 0 },
+    });
+
+    // Get out of stock products
+    const outOfStockProducts = await Product.countDocuments({
+      user: req.user._id,
+      stock: 0,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        products: {
+          total: totalProducts,
+          pending: pendingProducts,
+          approved: approvedProducts,
+          rejected: rejectedProducts,
+          lowStock: lowStockProducts,
+          outOfStock: outOfStockProducts,
+        },
+        sales: {
+          totalOrders,
+          pendingOrders,
+          completedOrders,
+          totalRevenue: totalRevenue.toFixed(2),
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get seller's products
+ * @route GET /api/seller/products
+ * @access Private/Seller
+ */
+const getSellerProducts = async (req, res) => {
+  try {
+    const {
+      status,
+      page = 1,
+      limit = 10,
+      sort = '-createdAt',
+      search,
+      inStock,
+    } = req.query;
+
+    // Build query
+    const query = { user: req.user._id };
+
+    // Filter by moderation status
+    if (status) {
+      query.moderationStatus = status;
+    }
+
+    // Filter by stock availability
+    if (inStock === 'true') {
+      query.stock = { $gt: 0 };
+    } else if (inStock === 'false') {
+      query.stock = 0;
+    }
+
+    // Search by name or description
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const products = await Product.find(query)
+      .populate('craft', 'name state category')
+      .populate('moderatedBy', 'name email')
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('-__v');
+
+    const total = await Product.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      data: products,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get seller's sales summary
+ * @route GET /api/seller/sales
+ * @access Private/Seller
+ */
+const getSellerSales = async (req, res) => {
+  try {
+    const { startDate, endDate, page = 1, limit = 10 } = req.query;
+
+    // Get seller's products
+    const sellerProducts = await Product.find({ user: req.user._id }).select('_id name price');
+    const productIds = sellerProducts.map(p => p._id);
+
+    if (productIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          orders: [],
+          summary: {
+            totalOrders: 0,
+            totalRevenue: 0,
+            totalItems: 0,
+          },
+        },
+      });
+    }
+
+    // Build query for orders containing seller's products
+    const query = {
+      'items.product': { $in: productIds },
+    };
+
+    // Date range filter
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const orders = await Order.find(query)
+      .populate('user', 'name email')
+      .populate('items.product', 'name price user')
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Process orders to only show seller's items and calculate totals
+    const processedOrders = [];
+    let totalRevenue = 0;
+    let totalItems = 0;
+
+    orders.forEach(order => {
+      const sellerItems = order.items.filter(
+        item => item.product && item.product.user.toString() === req.user._id.toString()
+      );
+
+      if (sellerItems.length > 0) {
+        let orderRevenue = 0;
+        sellerItems.forEach(item => {
+          const itemTotal = item.price * item.quantity;
+          orderRevenue += itemTotal;
+          totalItems += item.quantity;
+        });
+
+        totalRevenue += orderRevenue;
+
+        processedOrders.push({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          customer: order.user,
+          items: sellerItems,
+          orderRevenue: orderRevenue.toFixed(2),
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          createdAt: order.createdAt,
+        });
+      }
+    });
+
+    const total = processedOrders.length;
+
+    res.status(200).json({
+      success: true,
+      count: processedOrders.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      data: {
+        orders: processedOrders,
+        summary: {
+          totalOrders: total,
+          totalRevenue: totalRevenue.toFixed(2),
+          totalItems,
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   applyForSeller,
   getApplicationStatus,
@@ -324,4 +595,7 @@ module.exports = {
   getPendingApplications,
   approveApplication,
   rejectApplication,
+  getSellerDashboard,
+  getSellerProducts,
+  getSellerSales,
 };
