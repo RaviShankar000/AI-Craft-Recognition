@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useContext } from 'react';
 import { SocketContext } from '../context/SocketContext';
 import { useToast } from '../components/ToastProvider';
+import { usePollingFallback } from './usePollingFallback';
 
 /**
  * Custom hook to handle real-time notifications
@@ -206,6 +207,9 @@ export const useNotifications = () => {
     };
   }, [socket, addNotification]);
 
+  // Set up polling fallback
+  const { isPolling, isConnected } = usePollingFallback(socket, addNotification, 15000);
+
   return {
     notifications,
     unreadCount,
@@ -215,6 +219,8 @@ export const useNotifications = () => {
     clearNotification,
     clearAll,
     requestNotificationPermission,
+    isPolling,
+    isConnected,
   };
 };
 

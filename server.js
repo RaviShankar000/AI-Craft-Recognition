@@ -47,6 +47,7 @@ const adminRoutes = require('./src/routes/adminRoutes');
 const sellerRoutes = require('./src/routes/sellerRoutes');
 const auditLogRoutes = require('./src/routes/auditLogRoutes');
 const socketRoutes = require('./src/routes/socket');
+const notificationRoutes = require('./src/routes/notificationRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -63,6 +64,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/socket', socketRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
