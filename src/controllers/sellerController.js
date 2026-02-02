@@ -2,6 +2,7 @@ const SellerApplication = require('../models/SellerApplication');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const { getIO } = require('../config/socket');
 const {
   logSellerApplicationApproved,
   logSellerApplicationRejected,
@@ -259,6 +260,33 @@ const approveApplication = async (req, res) => {
     // Log the approval action
     await logSellerApplicationApproved(req.user, application, req);
 
+    // Emit socket event to notify user
+    try {
+      const io = getIO();
+      const applicationWithUser = await SellerApplication.findById(application._id).populate('user', '_id name');
+      
+      if (applicationWithUser && applicationWithUser.user) {
+        io.to(applicationWithUser.user._id.toString()).emit('moderation:seller_approved', {
+          applicationId: application._id,
+          status: 'approved',
+          note: note || null,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[MODERATION] Emitted seller_approved to user ${applicationWithUser.user._id}`);
+      }
+      
+      // Notify all admins
+      io.to('role:admin').emit('moderation:seller_status_changed', {
+        applicationId: application._id,
+        userName: applicationWithUser?.user?.name,
+        status: 'approved',
+        moderator: req.user.name,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit seller moderation event:', socketError.message);
+    }
+
     res.status(200).json({
       success: true,
       message: 'Seller application approved successfully. User role updated to seller.',
@@ -310,6 +338,33 @@ const rejectApplication = async (req, res) => {
 
     // Log the rejection action
     await logSellerApplicationRejected(req.user, application, req);
+
+    // Emit socket event to notify user
+    try {
+      const io = getIO();
+      const applicationWithUser = await SellerApplication.findById(application._id).populate('user', '_id name');
+      
+      if (applicationWithUser && applicationWithUser.user) {
+        io.to(applicationWithUser.user._id.toString()).emit('moderation:seller_rejected', {
+          applicationId: application._id,
+          status: 'rejected',
+          note: note,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[MODERATION] Emitted seller_rejected to user ${applicationWithUser.user._id}`);
+      }
+      
+      // Notify all admins
+      io.to('role:admin').emit('moderation:seller_status_changed', {
+        applicationId: application._id,
+        userName: applicationWithUser?.user?.name,
+        status: 'rejected',
+        moderator: req.user.name,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit seller moderation event:', socketError.message);
+    }
 
     res.status(200).json({
       success: true,

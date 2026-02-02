@@ -690,6 +690,34 @@ const approveProduct = async (req, res) => {
     // Log product moderation
     await logProductModerated(req.user, product, 'approved', note, req);
 
+    // Emit socket event to notify seller/user
+    try {
+      const io = getIO();
+      const productWithUser = await Product.findById(product._id).populate('user', '_id');
+      
+      if (productWithUser && productWithUser.user) {
+        io.to(productWithUser.user._id.toString()).emit('moderation:product_approved', {
+          productId: product._id,
+          productName: product.name,
+          status: 'approved',
+          note: note || null,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[MODERATION] Emitted product_approved to user ${productWithUser.user._id}`);
+      }
+      
+      // Notify all admins
+      io.to('role:admin').emit('moderation:product_status_changed', {
+        productId: product._id,
+        productName: product.name,
+        status: 'approved',
+        moderator: req.user.name,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit product moderation event:', socketError.message);
+    }
+
     res.status(200).json({
       success: true,
       message: 'Product approved successfully',
@@ -732,6 +760,34 @@ const rejectProduct = async (req, res) => {
 
     // Log product moderation
     await logProductModerated(req.user, product, 'rejected', note, req);
+
+    // Emit socket event to notify seller/user
+    try {
+      const io = getIO();
+      const productWithUser = await Product.findById(product._id).populate('user', '_id');
+      
+      if (productWithUser && productWithUser.user) {
+        io.to(productWithUser.user._id.toString()).emit('moderation:product_rejected', {
+          productId: product._id,
+          productName: product.name,
+          status: 'rejected',
+          note: note,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[MODERATION] Emitted product_rejected to user ${productWithUser.user._id}`);
+      }
+      
+      // Notify all admins
+      io.to('role:admin').emit('moderation:product_status_changed', {
+        productId: product._id,
+        productName: product.name,
+        status: 'rejected',
+        moderator: req.user.name,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit product moderation event:', socketError.message);
+    }
 
     res.status(200).json({
       success: true,
