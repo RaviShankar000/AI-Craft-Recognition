@@ -1,13 +1,14 @@
 const chatbotService = require('../services/chatbotService');
+const { getIO } = require('../config/socket');
 
 /**
- * @desc    Send message to chatbot and get response
+ * @desc    Send message to chatbot and get response with streaming
  * @route   POST /api/chatbot/message
  * @access  Public
  */
 const sendMessage = async (req, res) => {
   try {
-    const { message, context } = req.body;
+    const { message, context, userId } = req.body;
 
     // Basic type checking (detailed validation happens in service)
     if (message === undefined || message === null) {
@@ -24,11 +25,84 @@ const sendMessage = async (req, res) => {
       typeof message === 'string' ? message.substring(0, 100) : typeof message
     );
 
-    // Process message through chatbot service (service handles all validation)
-    const response = await chatbotService.processMessage(message, context || {});
+    // Emit chatbot_started event
+    try {
+      const io = getIO();
+      const targetRoom = userId || 'anonymous';
+      io.to(targetRoom).emit('chatbot_started', {
+        userId: targetRoom,
+        message: typeof message === 'string' ? message.substring(0, 200) : message,
+        timestamp: new Date().toISOString(),
+      });
+      console.log(`[SOCKET] Emitted chatbot_started to ${targetRoom}`);
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit chatbot_started:', socketError.message);
+    }
+
+    // Process message through chatbot service with streaming callback
+    const response = await chatbotService.processMessage(message, context || {}, {
+      onToken: (token) => {
+        // Emit each token as it's generated
+        try {
+          const io = getIO();
+          const targetRoom = userId || 'anonymous';
+          io.to(targetRoom).emit('chatbot_token', {
+            userId: targetRoom,
+            token: token,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (socketError) {
+          console.error('[SOCKET] Failed to emit chatbot_token:', socketError.message);
+        }
+      },
+      onComplete: (fullResponse) => {
+        // Emit completion event
+        try {
+          const io = getIO();
+          const targetRoom = userId || 'anonymous';
+          io.to(targetRoom).emit('chatbot_completed', {
+            userId: targetRoom,
+            response: fullResponse,
+            timestamp: new Date().toISOString(),
+          });
+          console.log(`[SOCKET] Emitted chatbot_completed to ${targetRoom}`);
+        } catch (socketError) {
+          console.error('[SOCKET] Failed to emit chatbot_completed:', socketError.message);
+        }
+      },
+      onError: (error) => {
+        // Emit error event
+        try {
+          const io = getIO();
+          const targetRoom = userId || 'anonymous';
+          io.to(targetRoom).emit('chatbot_error', {
+            userId: targetRoom,
+            error: error.message || 'Processing error',
+            timestamp: new Date().toISOString(),
+          });
+          console.log(`[SOCKET] Emitted chatbot_error to ${targetRoom}`);
+        } catch (socketError) {
+          console.error('[SOCKET] Failed to emit chatbot_error:', socketError.message);
+        }
+      },
+    });
 
     // Check if response is an error from validation
     if (response.error && response.validationError) {
+      // Emit error event for validation errors
+      try {
+        const io = getIO();
+        const targetRoom = userId || 'anonymous';
+        io.to(targetRoom).emit('chatbot_error', {
+          userId: targetRoom,
+          error: response.validationError,
+          errorType: response.errorType,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (socketError) {
+        console.error('[SOCKET] Failed to emit validation error:', socketError.message);
+      }
+
       // Return 200 with error response (allows frontend to display error message)
       return res.status(200).json({
         success: true,
@@ -47,6 +121,21 @@ const sendMessage = async (req, res) => {
     });
   } catch (error) {
     console.error('Chatbot message error:', error);
+    
+    // Emit error event for exceptions
+    try {
+      const io = getIO();
+      const targetRoom = req.body.userId || 'anonymous';
+      io.to(targetRoom).emit('chatbot_error', {
+        userId: targetRoom,
+        error: 'Server error',
+        message: 'Failed to process message',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (socketError) {
+      console.error('[SOCKET] Failed to emit error:', socketError.message);
+    }
+    
     res.status(500).json({
       success: false,
       error: 'Server error',
