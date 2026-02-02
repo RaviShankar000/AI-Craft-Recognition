@@ -61,6 +61,20 @@ const getAllCrafts = async (req, res) => {
           deviceType: getDeviceType(req.headers['user-agent']),
           browser: getBrowser(req.headers['user-agent']),
         });
+        
+        // Emit realtime analytics event for search
+        try {
+          const io = getIO();
+          io.to('role:admin').emit('analytics:search', {
+            userId: req.user._id,
+            query: search,
+            searchType: 'text',
+            resultsCount: crafts.length,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (socketError) {
+          console.error('[SOCKET] Failed to emit analytics:search:', socketError.message);
+        }
       } catch (analyticsError) {
         console.error('Analytics tracking failed:', analyticsError.message);
       }
@@ -165,6 +179,20 @@ const getCraftById = async (req, res) => {
           browser: getBrowser(req.headers['user-agent']),
           ipAddress: req.ip || req.connection.remoteAddress,
         });
+        
+        // Emit realtime analytics event for craft view
+        try {
+          const io = getIO();
+          io.to('role:admin').emit('analytics:craft_view', {
+            userId: req.user._id,
+            craftId: craft._id,
+            craftName: craft.name,
+            category: craft.category,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (socketError) {
+          console.error('[SOCKET] Failed to emit analytics:craft_view:', socketError.message);
+        }
       } catch (analyticsError) {
         // Don't fail the request if analytics fails
         console.error('Analytics tracking failed:', analyticsError.message);
@@ -435,7 +463,20 @@ const voiceSearchCrafts = async (req, res) => {
         deviceType: getDeviceType(req.headers['user-agent']),
         browser: getBrowser(req.headers['user-agent']),
       });
-    } catch (analyticsError) {
+      
+      // Emit realtime analytics event for voice search
+      try {
+        const io = getIO();
+        io.to('role:admin').emit('analytics:search', {
+          userId: req.user._id,
+          query: sanitizedQuery,
+          searchType: 'voice',
+          resultsCount: crafts.length,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (socketError) {
+        console.error('[SOCKET] Failed to emit analytics:search:', socketError.message);
+      }\n    } catch (analyticsError) {
       console.error('Analytics tracking failed:', analyticsError.message);
     }
 
