@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
+const AnalyticsService = require('../services/analyticsService');
 const {
   logUserRoleChanged,
   logUserAccountStatusChanged,
@@ -145,6 +146,106 @@ router.patch('/products/:id/approve', approveProduct);
 
 // Reject product
 router.patch('/products/:id/reject', rejectProduct);
+
+/**
+ * ============================================================================
+ * ANALYTICS
+ * ============================================================================
+ */
+
+/**
+ * Get live analytics stats (last 24 hours)
+ * @route GET /api/admin/analytics/live
+ * @access Private/Admin
+ */
+router.get('/analytics/live', async (req, res) => {
+  try {
+    const stats = await AnalyticsService.getLiveStatsAndBroadcast();
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Get analytics summary with filters
+ * @route GET /api/admin/analytics/summary
+ * @access Private/Admin
+ */
+router.get('/analytics/summary', async (req, res) => {
+  try {
+    const { userId, startDate, endDate, eventType } = req.query;
+    const summary = await AnalyticsService.getAnalyticsSummary({
+      userId,
+      startDate,
+      endDate,
+      eventType,
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: summary,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Get popular searches
+ * @route GET /api/admin/analytics/popular-searches
+ * @access Private/Admin
+ */
+router.get('/analytics/popular-searches', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    const searches = await AnalyticsService.getPopularSearches(parseInt(limit));
+    
+    res.status(200).json({
+      success: true,
+      data: searches,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Get conversion funnel
+ * @route GET /api/admin/analytics/conversion-funnel
+ * @access Private/Admin
+ */
+router.get('/analytics/conversion-funnel', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const funnel = await AnalyticsService.getConversionFunnel({
+      startDate,
+      endDate,
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: funnel,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
 
 /**
  * ============================================================================

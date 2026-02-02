@@ -349,6 +349,76 @@ analyticsSchema.statics.getConversionFunnel = async function (filters = {}) {
   };
 };
 
+// Static method to get live analytics stats (last 24 hours)
+analyticsSchema.statics.getLiveStats = async function () {
+  const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [
+    totalEvents,
+    craftViews,
+    searches,
+    uniqueUsers,
+    topSearches,
+    recentActivity,
+  ] = await Promise.all([
+    // Total events in last 24h
+    this.countDocuments({ createdAt: { $gte: last24Hours } }),
+    
+    // Craft views
+    this.countDocuments({ 
+      eventType: 'craft_view', 
+      createdAt: { $gte: last24Hours } 
+    }),
+    
+    // Searches (text + voice)
+    this.countDocuments({ 
+      eventType: 'search',
+      createdAt: { $gte: last24Hours } 
+    }),
+    
+    // Unique users
+    this.distinct('user', { createdAt: { $gte: last24Hours } }).then(users => users.length),
+    
+    // Top 5 searches
+    this.aggregate([
+      {
+        $match: {
+          eventType: 'search',
+          searchQuery: { $exists: true, $ne: '' },
+          createdAt: { $gte: last24Hours }
+        }
+      },
+      {
+        $group: {
+          _id: '$searchQuery',
+          count: { $sum: 1 },
+          searchType: { $first: '$searchType' }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]),
+    
+    // Recent activity (last 10 events)
+    this.find({ createdAt: { $gte: last24Hours } })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('eventType searchQuery craft product createdAt')
+      .lean()
+  ]);
+
+  return {
+    totalEvents,
+    craftViews,
+    searches,
+    uniqueUsers,
+    topSearches,
+    recentActivity,
+    timeRange: '24h',
+    lastUpdated: new Date().toISOString(),
+  };
+};
+
 const Analytics = mongoose.model('Analytics', analyticsSchema);
 
 module.exports = Analytics;

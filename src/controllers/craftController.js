@@ -1,5 +1,6 @@
 const Craft = require('../models/Craft');
 const Analytics = require('../models/Analytics');
+const AnalyticsService = require('../services/analyticsService');
 const { sanitizeTranscript } = require('../utils/sanitizer');
 const { getIO } = require('../config/socket');
 
@@ -72,6 +73,11 @@ const getAllCrafts = async (req, res) => {
             resultsCount: crafts.length,
             timestamp: new Date().toISOString(),
           });
+          
+          // Broadcast updated analytics stats to admins
+          AnalyticsService.broadcastUpdatedStats().catch(err => 
+            console.error('Failed to broadcast updated stats:', err.message)
+          );
         } catch (socketError) {
           console.error('[SOCKET] Failed to emit analytics:search:', socketError.message);
         }
@@ -190,6 +196,11 @@ const getCraftById = async (req, res) => {
             category: craft.category,
             timestamp: new Date().toISOString(),
           });
+          
+          // Broadcast updated analytics stats to admins
+          AnalyticsService.broadcastUpdatedStats().catch(err => 
+            console.error('Failed to broadcast updated stats:', err.message)
+          );
         } catch (socketError) {
           console.error('[SOCKET] Failed to emit analytics:craft_view:', socketError.message);
         }
@@ -474,6 +485,11 @@ const voiceSearchCrafts = async (req, res) => {
           resultsCount: crafts.length,
           timestamp: new Date().toISOString(),
         });
+        
+        // Broadcast updated analytics stats to admins
+        AnalyticsService.broadcastUpdatedStats().catch(err => 
+          console.error('Failed to broadcast updated stats:', err.message)
+        );
       } catch (socketError) {
         console.error('[SOCKET] Failed to emit analytics:search:', socketError.message);
       }\n    } catch (analyticsError) {
