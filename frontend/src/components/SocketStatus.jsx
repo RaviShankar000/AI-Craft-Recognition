@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSocket } from '../context/SocketContext';
+import { useSocket } from '../hooks/useSocket';
 import { useSocketEvent, useSocketPing } from '../hooks/useSocket';
 import './SocketStatus.css';
 

@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
-const { authorizeRoles } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const {
   getConnectionStats,
   getUserConnections,
@@ -22,7 +21,7 @@ const { getIO } = require('../config/socket');
  * @desc    Get socket connection statistics (Admin only)
  * @access  Admin
  */
-router.get('/stats', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.get('/stats', protect, authorize('admin'), (req, res) => {
   try {
     const stats = getConnectionStats();
     res.json({
@@ -44,7 +43,7 @@ router.get('/stats', authenticateToken, authorizeRoles('admin'), (req, res) => {
  * @desc    Get connections for a specific user (Admin only)
  * @access  Admin
  */
-router.get('/user/:userId', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.get('/user/:userId', protect, authorize('admin'), (req, res) => {
   try {
     const { userId } = req.params;
     const connections = getUserConnections(userId);
@@ -74,7 +73,7 @@ router.get('/user/:userId', authenticateToken, authorizeRoles('admin'), (req, re
  * @desc    Force disconnect a user (Admin only)
  * @access  Admin
  */
-router.post('/disconnect/:userId', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.post('/disconnect/:userId', protect, authorize('admin'), (req, res) => {
   try {
     const { userId } = req.params;
     const { reason } = req.body;
@@ -112,7 +111,7 @@ router.post('/disconnect/:userId', authenticateToken, authorizeRoles('admin'), (
  * @desc    Broadcast a message to all connected users (Admin only)
  * @access  Admin
  */
-router.post('/broadcast', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.post('/broadcast', protect, authorize('admin'), (req, res) => {
   try {
     const { event, data, room } = req.body;
 
@@ -186,7 +185,7 @@ router.get('/health', (req, res) => {
  * @desc    Get all event-role mappings (Admin only)
  * @access  Admin
  */
-router.get('/events', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.get('/events', protect, authorize('admin'), (req, res) => {
   try {
     const mappings = getAllEventRoleMappings();
 
@@ -212,7 +211,7 @@ router.get('/events', authenticateToken, authorizeRoles('admin'), (req, res) => 
  * @desc    Get events available for a specific role (Admin only)
  * @access  Admin
  */
-router.get('/events/role/:role', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.get('/events/role/:role', protect, authorize('admin'), (req, res) => {
   try {
     const { role } = req.params;
 
@@ -248,7 +247,7 @@ router.get('/events/role/:role', authenticateToken, authorizeRoles('admin'), (re
  * @desc    Add or update event role mapping (Admin only)
  * @access  Admin
  */
-router.post('/events/mapping', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.post('/events/mapping', protect, authorize('admin'), (req, res) => {
   try {
     const { eventName, roles } = req.body;
 
@@ -286,8 +285,8 @@ router.post('/events/mapping', authenticateToken, authorizeRoles('admin'), (req,
  */
 router.delete(
   '/events/mapping/:eventName',
-  authenticateToken,
-  authorizeRoles('admin'),
+  protect,
+  authorize('admin'),
   (req, res) => {
     try {
       const { eventName } = req.params;
@@ -317,7 +316,7 @@ router.delete(
  * @desc    Get socket debug statistics (Admin only)
  * @access  Admin
  */
-router.get('/debug/stats', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.get('/debug/stats', protect, authorize('admin'), (req, res) => {
   try {
     const stats = getStats();
 
@@ -343,7 +342,7 @@ router.get('/debug/stats', authenticateToken, authorizeRoles('admin'), (req, res
  * @desc    Reset socket debug statistics (Admin only)
  * @access  Admin
  */
-router.post('/debug/reset', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.post('/debug/reset', protect, authorize('admin'), (req, res) => {
   try {
     resetStats();
 
@@ -366,7 +365,7 @@ router.post('/debug/reset', authenticateToken, authorizeRoles('admin'), (req, re
  * @desc    Toggle debug logging on/off (Admin only)
  * @access  Admin
  */
-router.post('/debug/toggle', authenticateToken, authorizeRoles('admin'), (req, res) => {
+router.post('/debug/toggle', protect, authorize('admin'), (req, res) => {
   try {
     const { enabled } = req.body;
 

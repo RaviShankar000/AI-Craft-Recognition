@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 import PropTypes from 'prop-types';
-
-const SocketContext = createContext(null);
+import { SocketContext } from './socketContext';
 
 /**
  * Socket.IO Context Provider
@@ -12,6 +11,7 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     // Get token from localStorage
@@ -28,7 +28,7 @@ export const SocketProvider = ({ children }) => {
     console.log('[SOCKET] Connecting to:', SOCKET_URL);
 
     // Create socket connection with JWT token
-    const newSocket = io(SOCKET_URL, {
+    socketRef.current = io(SOCKET_URL, {
       auth: {
         token: token,
       },
@@ -38,11 +38,14 @@ export const SocketProvider = ({ children }) => {
       reconnectionAttempts: 5,
     });
 
+    const newSocket = socketRef.current;
+
     // Connection successful
     newSocket.on('connect', () => {
       console.log('[SOCKET] Connected:', newSocket.id);
       setIsConnected(true);
       setConnectionError(null);
+      setSocket(newSocket);
     });
 
     // Connection error
@@ -100,12 +103,15 @@ export const SocketProvider = ({ children }) => {
       setConnectionError('Failed to reconnect to server');
     });
 
-    setSocket(newSocket);
-
     // Cleanup on unmount
     return () => {
       console.log('[SOCKET] Cleaning up connection');
-      newSocket.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      setSocket(null);
+      setIsConnected(false);
     };
   }, []); // Empty dependency array - only run once on mount
 
@@ -123,18 +129,3 @@ SocketProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-/**
- * Custom hook to use socket context
- * @returns {Object} { socket, isConnected, connectionError }
- */
-export const useSocket = () => {
-  const context = useContext(SocketContext);
-
-  if (context === undefined) {
-    throw new Error('useSocket must be used within a SocketProvider');
-  }
-
-  return context;
-};
-
-export default SocketContext;

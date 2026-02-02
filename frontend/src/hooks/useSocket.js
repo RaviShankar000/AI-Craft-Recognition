@@ -1,5 +1,20 @@
-import { useEffect } from 'react';
-import { useSocket } from '../context/SocketContext';
+import { useContext, useEffect } from 'react';
+import { SocketContext } from '../context/socketContext';
+
+/**
+ * Custom hook to access Socket.IO context
+ * @returns {Object} { socket, isConnected, connectionError }
+ * @throws {Error} If used outside SocketProvider
+ */
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+
+  if (context === undefined) {
+    throw new Error('useSocket must be used within a SocketProvider');
+  }
+
+  return context;
+};
 
 /**
  * Custom hook to listen to socket events

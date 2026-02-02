@@ -1,4 +1,5 @@
 const AIService = require('../services/aiService');
+const { getIO } = require('../config/socket');
 
 /**
  * @desc    Predict craft type from uploaded image
@@ -53,6 +54,21 @@ const predictCraft = async (req, res) => {
       mimetype: req.file.mimetype,
       size: `${(req.file.size / 1024).toFixed(2)}KB`,
     });
+
+    // Emit socket event to notify frontend that recognition has started
+    try {
+      const io = getIO();
+      io.to(req.user._id.toString()).emit('recognition_started', {
+        userId: req.user._id,
+        filename: req.file.originalname,
+        fileSize: req.file.size,
+        timestamp: new Date().toISOString(),
+      });
+      console.log(`[SOCKET] Emitted recognition_started to user ${req.user._id}`);
+    } catch (socketError) {
+      // Log socket error but don't block the request
+      console.error('[SOCKET] Failed to emit recognition_started:', socketError.message);
+    }
 
     // Send image to AI service
     const result = await AIService.predictCraft(req.file);
