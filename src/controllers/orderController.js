@@ -58,13 +58,31 @@ const populateOrderDetails = query => {
 /**
  * Get all user orders
  * @route GET /api/orders
- * @access Private
+ * @access Private (Role-based filtering)
+ * @description
+ * - Regular users: Their own orders
+ * - Sellers: Orders containing their products
+ * - Admins: Handled by separate admin route
  */
 const getAllOrders = async (req, res) => {
   try {
     const { status, page = 1, limit = 10, sort = '-createdAt' } = req.query;
 
-    const query = { user: req.user._id };
+    let query = {};
+    
+    // Role-based filtering
+    if (req.user.role === 'seller') {
+      // Sellers: Find orders containing their products
+      const Product = require('../models/Product');
+      const sellerProducts = await Product.find({ user: req.user._id }).select('_id');
+      const productIds = sellerProducts.map(p => p._id);
+      
+      query['items.product'] = { $in: productIds };
+    } else {
+      // Regular users: Only their own orders
+      query.user = req.user._id;
+    }
+    
     if (status) query.status = status;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -76,7 +94,27 @@ const getAllOrders = async (req, res) => {
       Order.countDocuments(query),
     ]);
 
-    res.status(200).json(buildPaginationData(page, limit, total, orders));
+    // For sellers, filter order items to show only their products
+    let filteredOrders = orders;
+    if (req.user.role === 'seller') {
+      const Product = require('../models/Product');
+      const sellerProducts = await Product.find({ user: req.user._id }).select('_id');
+      const productIds = sellerProducts.map(p => p._id.toString());
+      
+      filteredOrders = orders.map(order => {
+        const orderObj = order.toObject();
+        orderObj.items = orderObj.items.filter(item => 
+          item.product && productIds.includes(item.product._id.toString())
+        );
+        // Recalculate total for seller's items only
+        orderObj.sellerTotal = orderObj.items.reduce((sum, item) => 
+          sum + (item.price * item.quantity), 0
+        );
+        return orderObj;
+      });
+    }
+
+    res.status(200).json(buildPaginationData(page, limit, total, filteredOrders));
   } catch (error) {
     handleDbError(error, res);
   }
@@ -85,16 +123,29 @@ const getAllOrders = async (req, res) => {
 /**
  * Get order by ID
  * @route GET /api/orders/:id
- * @access Private
+ * @access Private (Role-based filtering)
+ * @description
+ * - Regular users: Only their own orders
+ * - Sellers: Orders containing their products (filtered to show only their items)
  */
 const getOrderById = async (req, res) => {
   try {
-    const order = await populateOrderDetails(
-      Order.findOne({
-        _id: req.params.id,
-        user: req.user._id,
-      })
-    );
+    let query = { _id: req.params.id };
+    
+    // Role-based filtering
+    if (req.user.role === 'seller') {
+      // Sellers: Find orders containing their products
+      const Product = require('../models/Product');
+      const sellerProducts = await Product.find({ user: req.user._id }).select('_id');
+      const productIds = sellerProducts.map(p => p._id);
+      
+      query['items.product'] = { $in: productIds };
+    } else {
+      // Regular users: Only their own orders
+      query.user = req.user._id;
+    }
+    
+    const order = await populateOrderDetails(Order.findOne(query));
 
     if (!order) {
       return res.status(404).json({
@@ -103,9 +154,26 @@ const getOrderById = async (req, res) => {
       });
     }
 
+    // For sellers, filter to show only their items
+    let responseData = order;
+    if (req.user.role === 'seller') {
+      const Product = require('../models/Product');
+      const sellerProducts = await Product.find({ user: req.user._id }).select('_id');
+      const productIds = sellerProducts.map(p => p._id.toString());
+      
+      const orderObj = order.toObject();
+      orderObj.items = orderObj.items.filter(item => 
+        item.product && productIds.includes(item.product._id.toString())
+      );
+      orderObj.sellerTotal = orderObj.items.reduce((sum, item) => 
+        sum + (item.price * item.quantity), 0
+      );
+      responseData = orderObj;
+    }
+
     res.status(200).json({
       success: true,
-      data: order,
+      data: responseData,
     });
   } catch (error) {
     handleDbError(error, res);
@@ -115,17 +183,32 @@ const getOrderById = async (req, res) => {
 /**
  * Track order by order number
  * @route GET /api/orders/track/:orderNumber
- * @access Private
+ * @access Private (Role-based filtering)
+ * @description
+ * - Regular users: Only their own orders
+ * - Sellers: Orders containing their products
  */
 const trackOrder = async (req, res) => {
   try {
-    const order = await Order.findOne({
-      orderNumber: req.params.orderNumber,
-      user: req.user._id,
-    })
+    let query = { orderNumber: req.params.orderNumber };
+    
+    // Role-based filtering
+    if (req.user.role === 'seller') {
+      // Sellers: Find orders containing their products
+      const Product = require('../models/Product');
+      const sellerProducts = await Product.find({ user: req.user._id }).select('_id');
+      const productIds = sellerProducts.map(p => p._id);
+      
+      query['items.product'] = { $in: productIds };
+    } else {
+      // Regular users: Only their own orders
+      query.user = req.user._id;
+    }
+    
+    const order = await Order.findOne(query)
       .populate('items.product', 'name')
       .populate('items.craft', 'name state')
-      .select('orderNumber status statusHistory totalAmount shippingAddress createdAt deliveredAt');
+      .select('orderNumber status statusHistory totalAmount shippingAddress createdAt deliveredAt items');
 
     if (!order) {
       return res.status(404).json({
@@ -134,13 +217,26 @@ const trackOrder = async (req, res) => {
       });
     }
 
+    // For sellers, filter items to show only their products
+    let itemCount = order.items.length;
+    if (req.user.role === 'seller') {
+      const Product = require('../models/Product');
+      const sellerProducts = await Product.find({ user: req.user._id }).select('_id');
+      const productIds = sellerProducts.map(p => p._id.toString());
+      
+      const filteredItems = order.items.filter(item => 
+        item.product && productIds.includes(item.product._id.toString())
+      );
+      itemCount = filteredItems.length;
+    }
+
     res.status(200).json({
       success: true,
       data: {
         orderNumber: order.orderNumber,
         status: order.status,
         totalAmount: order.totalAmount,
-        itemCount: order.items.length,
+        itemCount,
         statusHistory: order.statusHistory,
         estimatedDelivery: order.deliveredAt || getEstimatedDelivery(order.createdAt),
         shippingAddress: order.shippingAddress,

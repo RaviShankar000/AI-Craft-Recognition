@@ -4,10 +4,11 @@ const Craft = require('../models/Craft');
 /**
  * Get all products
  * @route GET /api/products
- * @access Public/Private (Public shows only approved, Private shows user's own)
+ * @access Public/Private (Role-based filtering)
  * @description 
  * - Public access: Returns only approved products for marketplace viewing
- * - Authenticated access: Returns user's own products (all statuses)
+ * - Seller/Admin access: Returns only their own products (all statuses)
+ * - Regular user access: Returns approved products from all sellers
  */
 const getAllProducts = async (req, res) => {
   try {
@@ -23,8 +24,19 @@ const getAllProducts = async (req, res) => {
       sort = '-createdAt',
     } = req.query;
 
-    // Build query - if user is authenticated, show their products; otherwise show approved only
-    const query = req.user ? { user: req.user._id } : { moderationStatus: 'approved' };
+    // Role-based query filtering
+    let query = {};
+    
+    if (!req.user) {
+      // Public access: only approved products
+      query.moderationStatus = 'approved';
+    } else if (req.user.role === 'seller' || req.user.role === 'admin') {
+      // Sellers/Admins: only their own products (all statuses)
+      query.user = req.user._id;
+    } else {
+      // Regular authenticated users: approved products from all sellers
+      query.moderationStatus = 'approved';
+    }
 
     // Filter by craft
     if (craft) {
@@ -87,14 +99,34 @@ const getAllProducts = async (req, res) => {
 /**
  * Get single product by ID
  * @route GET /api/products/:id
- * @access Private
+ * @access Public/Private (Role-based access)
+ * @description
+ * - Public/Regular users: Only approved products
+ * - Sellers: Their own products (any status) or approved products from others
+ * - Admins: Any product
  */
 const getProductById = async (req, res) => {
   try {
-    const product = await Product.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    }).populate('craft', 'name state category description');
+    let query = { _id: req.params.id };
+    
+    // Role-based filtering
+    if (!req.user) {
+      // Public: only approved products
+      query.moderationStatus = 'approved';
+    } else if (req.user.role === 'seller') {
+      // Sellers: their own products OR approved products from others
+      query.$or = [
+        { user: req.user._id },
+        { moderationStatus: 'approved' }
+      ];
+    } else if (req.user.role === 'user') {
+      // Regular users: only approved products
+      query.moderationStatus = 'approved';
+    }
+    // Admins: no additional filter (can see everything)
+    
+    const product = await Product.findOne(query)
+      .populate('craft', 'name state category description');
 
     if (!product) {
       return res.status(404).json({
