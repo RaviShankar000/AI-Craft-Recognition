@@ -30,8 +30,18 @@ const upload = multer({
 router.get('/health', checkHealth);
 
 /**
- * PROTECTED ROUTES
- * Authentication required
+ * PROTECTED ROUTES - AUTHENTICATED USERS ONLY
+ * ============================================================================
+ * SECURITY: Craft recognition is restricted to authenticated users only.
+ * Anonymous users cannot upload or recognize crafts.
+ * 
+ * This prevents:
+ * - Abuse of AI service resources
+ * - Unauthorized craft data collection
+ * - Anonymous spam and malicious uploads
+ * 
+ * Users must be logged in (valid JWT token) to access craft recognition.
+ * ============================================================================
  */
 
 // Predict craft type from image

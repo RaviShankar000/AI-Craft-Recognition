@@ -3,12 +3,22 @@ const AIService = require('../services/aiService');
 /**
  * @desc    Predict craft type from uploaded image
  * @route   POST /api/ai/predict
- * @access  Private
+ * @access  Private (Authenticated users only)
+ * @security Only logged-in users can upload crafts for recognition
  */
 const predictCraft = async (req, res) => {
   const startTime = Date.now();
 
   try {
+    // Explicit authentication check
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+        message: 'You must be logged in to use craft recognition',
+      });
+    }
+
     // Check if file was uploaded
     if (!req.file) {
       return res.status(400).json({
@@ -37,6 +47,8 @@ const predictCraft = async (req, res) => {
 
     // Log file info for debugging
     console.log('Processing image:', {
+      userId: req.user._id,
+      userEmail: req.user.email,
       filename: req.file.originalname,
       mimetype: req.file.mimetype,
       size: `${(req.file.size / 1024).toFixed(2)}KB`,
@@ -70,6 +82,10 @@ const predictCraft = async (req, res) => {
         modelVersion: result.data.model_version,
         processingTime: result.data.processing_time,
         totalTime: totalTime / 1000,
+      },
+      user: {
+        id: req.user._id,
+        email: req.user.email,
       },
     });
   } catch (error) {
