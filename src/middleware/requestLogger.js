@@ -1,4 +1,5 @@
 const logger = require('../config/logger');
+const { maskRequestBody } = require('../utils/maskSensitiveData');
 
 /**
  * Request Logging Middleware
@@ -87,14 +88,7 @@ const detailedRequestLogger = (req, res, next) => {
 
   // Log body for non-GET requests (excluding sensitive fields)
   if (req.method !== 'GET' && req.body) {
-    const sanitizedBody = { ...req.body };
-    // Remove sensitive fields
-    delete sanitizedBody.password;
-    delete sanitizedBody.token;
-    delete sanitizedBody.secret;
-    delete sanitizedBody.apiKey;
-    
-    logData.body = sanitizedBody;
+    logData.body = maskRequestBody(req.body);
   }
 
   console.log(`📥 REQUEST:`, logData);

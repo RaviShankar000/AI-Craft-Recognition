@@ -2,6 +2,7 @@ const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
 const config = require('../config/env');
+const { maskSensitiveData } = require('../utils/maskSensitiveData');
 
 // Define log levels
 const levels = {
@@ -140,12 +141,14 @@ logger.logError = (error, req = null) => {
   };
 
   if (req) {
-    errorData.request = {
+    errorData.request = maskSensitiveData({
       method: req.method,
       url: req.originalUrl,
+      body: req.body,
+      query: req.query,
       userId: req.user?._id,
       ip: req.ip,
-    };
+    });
   }
 
   logger.error('Application Error', errorData);

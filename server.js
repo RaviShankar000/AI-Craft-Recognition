@@ -30,6 +30,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware
 const { requestLogger, skipLogging } = require('./src/middleware/requestLogger');
+const { maskResponseMiddleware } = require('./src/utils/maskSensitiveData');
+
+// Mask sensitive data in responses
+app.use(maskResponseMiddleware);
+
 // Skip logging for health checks and static files
 app.use(skipLogging(['/health', '/uploads', '/socket.io']));
 
