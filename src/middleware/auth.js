@@ -263,9 +263,10 @@ const authorize = (...roles) => {
         userId: req.user.id,
         userRole: req.user.role,
         requiredRoles: roles,
-        reason: 'User role not in allowed roles'
+        reason: 'User role not in allowed roles',
+        message: `Role '${req.user.role}' attempted to access route requiring: [${roles.join(', ')}]`
       });
-      const error = new Error(`Access denied. User role '${req.user.role}' is not authorized to access this route.`);
+      const error = new Error(`Access denied. User role '${req.user.role}' is not authorized to access this route. Required roles: [${roles.join(', ')}]`);
       error.statusCode = 403;
       error.code = 'ROLE_AUTHORIZATION_FAILED';
       error.details = {

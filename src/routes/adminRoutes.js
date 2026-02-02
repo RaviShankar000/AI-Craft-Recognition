@@ -38,9 +38,12 @@ const {
  * All routes under /api/admin/* require authentication and admin role.
  * These routes are grouped for centralized admin functionality.
  * 
+ * SECURITY: Sellers and regular users are BLOCKED from accessing these routes.
+ * Only users with role === 'admin' can access any endpoint under /api/admin/*
+ * 
  * MIDDLEWARE PROTECTION:
  * - protect: Verifies JWT token and authenticates user
- * - authorize('admin'): Ensures user has admin role
+ * - authorize('admin'): Ensures user has admin role (BLOCKS sellers & users)
  * 
  * ROUTE STRUCTURE:
  * /api/admin/
@@ -49,13 +52,15 @@ const {
  *   ├── orders/           - Order management
  *   ├── crafts/           - Craft management
  *   ├── users/            - User management
- *   └── sellers/          - Seller application management
+ *   ├── analytics         - Platform-wide analytics
+ *   └── seller-applications/ - Seller application management
  * ============================================================================
  */
 
-// Apply admin authentication to all routes
+// Apply admin authentication to all routes in this router
+// This ensures ONLY admins can access any route below this point
 router.use(protect);
-router.use(authorize('admin'));
+router.use(authorize('admin')); // CRITICAL: Blocks sellers and regular users
 
 /**
  * ============================================================================
