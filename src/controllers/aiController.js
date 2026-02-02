@@ -87,18 +87,40 @@ const predictCraft = async (req, res) => {
     const totalTime = Date.now() - startTime;
     console.log(`Total request time: ${totalTime}ms`);
 
+    // Prepare response data
+    const responseData = {
+      craftName: result.data.craft_name,
+      confidence: result.data.confidence,
+      allPredictions: result.data.all_predictions,
+      imageInfo: result.data.image_info,
+      modelVersion: result.data.model_version,
+      processingTime: result.data.processing_time,
+      totalTime: totalTime / 1000,
+    };
+
+    // Emit socket event to notify frontend that recognition is completed
+    try {
+      const io = getIO();
+      io.to(req.user._id.toString()).emit('recognition_completed', {
+        userId: req.user._id,
+        filename: req.file.originalname,
+        craftName: responseData.craftName,
+        confidence: responseData.confidence,
+        allPredictions: responseData.allPredictions,
+        processingTime: responseData.processingTime,
+        totalTime: responseData.totalTime,
+        timestamp: new Date().toISOString(),
+      });
+      console.log(`[SOCKET] Emitted recognition_completed to user ${req.user._id}`);
+    } catch (socketError) {
+      // Log socket error but don't block the response
+      console.error('[SOCKET] Failed to emit recognition_completed:', socketError.message);
+    }
+
     // Return prediction results
     res.status(200).json({
       success: true,
-      data: {
-        craftName: result.data.craft_name,
-        confidence: result.data.confidence,
-        allPredictions: result.data.all_predictions,
-        imageInfo: result.data.image_info,
-        modelVersion: result.data.model_version,
-        processingTime: result.data.processing_time,
-        totalTime: totalTime / 1000,
-      },
+      data: responseData,
       user: {
         id: req.user._id,
         email: req.user.email,
