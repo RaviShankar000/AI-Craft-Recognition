@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize, optionalAuth } = require('../middleware/auth');
+const { apiLimiter, updateLimiter } = require('../middleware/rateLimiter');
 const {
   getAllProducts,
   getProductById,
@@ -18,33 +19,35 @@ const {
 /**
  * PUBLIC ROUTES
  * No authentication required (but optionalAuth allows user context)
+ * Rate limited to prevent abuse
  */
 
-// Get products by craft (must be before /:id route)
-router.get('/craft/:craftId', getProductsByCraft);
+// Get products by craft (must be before /:id route) - Rate limited: 100 requests per 15 minutes
+router.get('/craft/:craftId', apiLimiter, getProductsByCraft);
 
-// Get all products (shows approved for public, user's own if authenticated)
-router.get('/', optionalAuth, getAllProducts);
+// Get all products (shows approved for public, user's own if authenticated) - Rate limited: 100 requests per 15 minutes
+router.get('/', optionalAuth, apiLimiter, getAllProducts);
 
-// Get product by ID
-router.get('/:id', getProductById);
+// Get product by ID - Rate limited: 100 requests per 15 minutes
+router.get('/:id', apiLimiter, getProductById);
 
 /**
  * PROTECTED ROUTES - SELLER ONLY
  * Sellers can manage their own products
+ * Rate limited to prevent abuse
  */
 
-// Create new product
-router.post('/', protect, authorize('seller', 'admin'), createProduct);
+// Create new product - Rate limited: 20 requests per 15 minutes
+router.post('/', protect, authorize('seller', 'admin'), updateLimiter, createProduct);
 
-// Update product
-router.put('/:id', protect, authorize('seller', 'admin'), updateProduct);
+// Update product - Rate limited: 20 requests per 15 minutes
+router.put('/:id', protect, authorize('seller', 'admin'), updateLimiter, updateProduct);
 
-// Delete product
-router.delete('/:id', protect, authorize('seller', 'admin'), deleteProduct);
+// Delete product - Rate limited: 20 requests per 15 minutes
+router.delete('/:id', protect, authorize('seller', 'admin'), updateLimiter, deleteProduct);
 
-// Stock management route
-router.patch('/:id/stock', protect, authorize('seller', 'admin'), updateProductStock);
+// Stock management route - Rate limited: 20 requests per 15 minutes
+router.patch('/:id/stock', protect, authorize('seller', 'admin'), updateLimiter, updateProductStock);
 
 /**
  * PROTECTED ROUTES - ADMIN ONLY

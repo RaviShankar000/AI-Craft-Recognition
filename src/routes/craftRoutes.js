@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
+const { apiLimiter } = require('../middleware/rateLimiter');
 const {
   getAllCrafts,
   createCraft,
@@ -14,21 +15,23 @@ const {
 /**
  * PUBLIC ROUTES
  * No authentication required
+ * Rate limited to prevent abuse
  */
 
-// Get all crafts
-router.get('/', getAllCrafts);
+// Get all crafts - Rate limited: 100 requests per 15 minutes
+router.get('/', apiLimiter, getAllCrafts);
 
-// Get craft by ID
-router.get('/:id', getCraftById);
+// Get craft by ID - Rate limited: 100 requests per 15 minutes
+router.get('/:id', apiLimiter, getCraftById);
 
 /**
  * PROTECTED ROUTES
  * Authentication required
+ * Rate limited to prevent abuse
  */
 
-// Voice search crafts
-router.get('/voice-search', protect, voiceSearchCrafts);
+// Voice search crafts - Rate limited: 100 requests per 15 minutes
+router.get('/voice-search', protect, apiLimiter, voiceSearchCrafts);
 
 /**
  * PROTECTED ROUTES - ADMIN ONLY

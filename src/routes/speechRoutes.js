@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const { transcribeAudio, getStatus } = require('../controllers/speechController');
 const { protect } = require('../middleware/auth');
+const { chatLimiter, apiLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -33,17 +34,19 @@ const upload = multer({
 /**
  * PUBLIC ROUTES
  * No authentication required
+ * Rate limited to prevent abuse
  */
 
-// Get speech service status
-router.get('/status', getStatus);
+// Get speech service status - Rate limited: 100 requests per 15 minutes
+router.get('/status', apiLimiter, getStatus);
 
 /**
  * PROTECTED ROUTES
  * Authentication required
+ * Rate limited to prevent abuse of AI service
  */
 
-// Transcribe audio to text
-router.post('/transcribe', protect, upload.single('audio'), transcribeAudio);
+// Transcribe audio to text - Rate limited: 30 requests per 15 minutes
+router.post('/transcribe', protect, chatLimiter, upload.single('audio'), transcribeAudio);
 
 module.exports = router;

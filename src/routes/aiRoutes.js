@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const { predictCraft, checkHealth } = require('../controllers/aiController');
 const { protect } = require('../middleware/auth');
+const { aiLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -34,17 +35,18 @@ router.get('/health', checkHealth);
  * ============================================================================
  * SECURITY: Craft recognition is restricted to authenticated users only.
  * Anonymous users cannot upload or recognize crafts.
- * 
+ *
  * This prevents:
  * - Abuse of AI service resources
  * - Unauthorized craft data collection
  * - Anonymous spam and malicious uploads
- * 
+ *
  * Users must be logged in (valid JWT token) to access craft recognition.
+ * RATE LIMIT: 10 requests per 15 minutes to prevent abuse of AI service
  * ============================================================================
  */
 
-// Predict craft type from image
-router.post('/predict', protect, upload.single('image'), predictCraft);
+// Predict craft type from image - Rate limited: 10 requests per 15 minutes
+router.post('/predict', protect, aiLimiter, upload.single('image'), predictCraft);
 
 module.exports = router;
