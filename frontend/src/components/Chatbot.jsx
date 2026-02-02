@@ -87,21 +87,53 @@ const Chatbot = () => {
         console.error('Chatbot error:', data);
         setIsTyping(false);
         
-        const errorMessage = {
-          id: Date.now(),
-          text: data.error || 'Sorry, I encountered an error. Please try again.',
-          sender: 'bot',
-          timestamp: new Date(),
-          isError: true,
-        };
-        
-        // Remove streaming message if exists
-        if (streamingMessageId) {
-          setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
-          setStreamingMessageId(null);
+        // Handle timeout with partial response
+        if (data.timeout && data.partialResponse) {
+          // Update the streaming message with partial response + timeout notice
+          if (streamingMessageId) {
+            setMessages(prev => prev.map(msg => {
+              if (msg.id === streamingMessageId) {
+                return {
+                  ...msg,
+                  text: data.partialResponse + '\n\n⏱️ _Response timed out. Partial response shown above._',
+                  isStreaming: false,
+                  isTimeout: true,
+                };
+              }
+              return msg;
+            }));
+            setStreamingMessageId(null);
+          } else {
+            // Create new message with partial response
+            const partialMessage = {
+              id: Date.now(),
+              text: data.partialResponse + '\n\n⏱️ _Response timed out. Partial response shown above._',
+              sender: 'bot',
+              timestamp: new Date(),
+              isTimeout: true,
+            };
+            setMessages(prev => [...prev, partialMessage]);
+          }
+        } else {
+          // Regular error handling
+          const errorMessage = {
+            id: Date.now(),
+            text: data.timeout 
+              ? '⏱️ Request timed out. Please try asking your question again, or try a shorter question.' 
+              : (data.error || 'Sorry, I encountered an error. Please try again.'),
+            sender: 'bot',
+            timestamp: new Date(),
+            isError: true,
+          };
+          
+          // Remove streaming message if exists
+          if (streamingMessageId) {
+            setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
+            setStreamingMessageId(null);
+          }
+          
+          setMessages(prev => [...prev, errorMessage]);
         }
-        
-        setMessages(prev => [...prev, errorMessage]);
       },
     });
 
@@ -286,12 +318,34 @@ const Chatbot = () => {
                   </svg>
                 </div>
               )}
-              <div className={`message-bubble ${message.sender} ${message.isError ? 'error' : ''} ${message.isStreaming ? 'streaming' : ''}`}>
+              <div 
+                className={`message-bubble ${message.sender} ${message.isError ? 'error' : ''} ${message.isStreaming ? 'streaming' : ''}`}
+                data-timeout={message.isTimeout ? 'true' : undefined}
+              >
                 <p className="message-text" style={{ whiteSpace: 'pre-wrap' }}>
                   {message.text}
                   {message.isStreaming && <span className="cursor-blink">▋</span>}
                 </p>
                 <span className="message-time">{formatTime(message.timestamp)}</span>
+                
+                {/* Retry button for timeout/error messages */}
+                {(message.isError || message.isTimeout) && message.sender === 'bot' && (
+                  <button 
+                    className="retry-button"
+                    onClick={() => {
+                      // Find the last user message and resend it
+                      const userMessages = messages.filter(m => m.sender === 'user');
+                      if (userMessages.length > 0) {
+                        const lastUserMsg = userMessages[userMessages.length - 1];
+                        setInputMessage(lastUserMsg.text);
+                        inputRef.current?.focus();
+                      }
+                    }}
+                    title="Retry last message"
+                  >
+                    🔄 Retry
+                  </button>
+                )}
               </div>
               {message.sender === 'user' && (
                 <div className="message-avatar user-avatar-small">

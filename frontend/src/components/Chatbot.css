@@ -476,3 +476,37 @@
     box-shadow: 0 2px 12px rgba(102, 126, 234, 0.3);
   }
 }
+
+/* Timeout message styling */
+.message-bubble.bot[data-timeout="true"],
+.message-wrapper .message-bubble:has(+ [data-timeout="true"]) {
+  border-left: 3px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+/* Retry button */
+.retry-button {
+  margin-top: 8px;
+  padding: 4px 12px;
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid #667eea;
+  border-radius: 4px;
+  color: #667eea;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.retry-button:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.retry-button:active {
+  transform: translateY(0);
+}

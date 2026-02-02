@@ -1,12 +1,31 @@
 const chatbotService = require('../services/chatbotService');
 const { getIO } = require('../config/socket');
 
+// Chatbot timeout configuration (in milliseconds)
+const CHATBOT_TIMEOUT_MS = 45000; // 45 seconds
+
+/**
+ * Create a promise that rejects after a timeout
+ * @param {Number} ms - Timeout in milliseconds
+ * @returns {Promise} Timeout promise
+ */
+const createTimeout = (ms) => {
+  return new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Request timeout after ${ms / 1000} seconds`));
+    }, ms);
+  });
+};
+
 /**
  * @desc    Send message to chatbot and get response with streaming
  * @route   POST /api/chatbot/message
  * @access  Public
  */
 const sendMessage = async (req, res) => {
+  let timeoutOccurred = false;
+  let partialResponse = '';
+  
   try {
     const { message, context, userId } = req.body;
 
@@ -39,9 +58,12 @@ const sendMessage = async (req, res) => {
       console.error('[SOCKET] Failed to emit chatbot_started:', socketError.message);
     }
 
-    // Process message through chatbot service with streaming callback
-    const response = await chatbotService.processMessage(message, context || {}, {
+    // Process message with timeout handling
+    const processPromise = chatbotService.processMessage(message, context || {}, {
       onToken: (token) => {
+        // Track partial response in case of timeout
+        partialResponse += token;
+        
         // Emit each token as it's generated
         try {
           const io = getIO();
@@ -56,18 +78,20 @@ const sendMessage = async (req, res) => {
         }
       },
       onComplete: (fullResponse) => {
-        // Emit completion event
-        try {
-          const io = getIO();
-          const targetRoom = userId || 'anonymous';
-          io.to(targetRoom).emit('chatbot_completed', {
-            userId: targetRoom,
-            response: fullResponse,
-            timestamp: new Date().toISOString(),
-          });
-          console.log(`[SOCKET] Emitted chatbot_completed to ${targetRoom}`);
-        } catch (socketError) {
-          console.error('[SOCKET] Failed to emit chatbot_completed:', socketError.message);
+        // Only emit if not timed out
+        if (!timeoutOccurred) {
+          try {
+            const io = getIO();
+            const targetRoom = userId || 'anonymous';
+            io.to(targetRoom).emit('chatbot_completed', {
+              userId: targetRoom,
+              response: fullResponse,
+              timestamp: new Date().toISOString(),
+            });
+            console.log(`[SOCKET] Emitted chatbot_completed to ${targetRoom}`);
+          } catch (socketError) {
+            console.error('[SOCKET] Failed to emit chatbot_completed:', socketError.message);
+          }
         }
       },
       onError: (error) => {
@@ -86,6 +110,12 @@ const sendMessage = async (req, res) => {
         }
       },
     });
+
+    // Race between processing and timeout
+    const response = await Promise.race([
+      processPromise,
+      createTimeout(CHATBOT_TIMEOUT_MS),
+    ]);
 
     // Check if response is an error from validation
     if (response.error && response.validationError) {
@@ -122,7 +152,39 @@ const sendMessage = async (req, res) => {
   } catch (error) {
     console.error('Chatbot message error:', error);
     
-    // Emit error event for exceptions
+    // Check if it's a timeout error
+    const isTimeout = error.message && error.message.includes('timeout');
+    
+    if (isTimeout) {
+      timeoutOccurred = true;
+      
+      // Emit timeout event with partial response
+      try {
+        const io = getIO();
+        const targetRoom = req.body.userId || 'anonymous';
+        io.to(targetRoom).emit('chatbot_error', {
+          userId: targetRoom,
+          error: 'Request timeout',
+          message: 'The request took too long to process',
+          timeout: true,
+          partialResponse: partialResponse || null,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`[SOCKET] Emitted timeout error to ${targetRoom}`);
+      } catch (socketError) {
+        console.error('[SOCKET] Failed to emit timeout error:', socketError.message);
+      }
+      
+      return res.status(408).json({
+        success: false,
+        error: 'Request timeout',
+        message: 'The chatbot response took too long. Please try again.',
+        timeout: true,
+        partialResponse: partialResponse || null,
+      });
+    }
+    
+    // Emit error event for other exceptions
     try {
       const io = getIO();
       const targetRoom = req.body.userId || 'anonymous';
