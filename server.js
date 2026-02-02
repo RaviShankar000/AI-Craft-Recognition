@@ -1,10 +1,17 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 require('dotenv').config();
 const connectDB = require('./src/config/database');
 const config = require('./src/config/env');
+const { initializeSocket, setIO } = require('./src/config/socket');
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO with JWT authentication
+const io = initializeSocket(server);
+setIO(io); // Make io instance available globally
 
 // Connect to MongoDB
 connectDB().catch(err => {
@@ -83,10 +90,11 @@ const errorHandler = require('./src/middleware/errorHandler');
 app.use(handleMulterError);
 app.use(errorHandler);
 
-// Start server
-app.listen(config.port, () => {
+// Start server with Socket.IO
+server.listen(config.port, () => {
   console.log(`Server is running on port ${config.port}`);
   console.log(`Environment: ${config.nodeEnv}`);
+  console.log(`Socket.IO enabled with JWT authentication`);
 });
 
-module.exports = app;
+module.exports = { app, server, io };
