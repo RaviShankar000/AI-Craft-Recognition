@@ -10,7 +10,7 @@ const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
   dim: '\x1b[2m',
-  
+
   // Foreground colors
   black: '\x1b[30m',
   red: '\x1b[31m',
@@ -20,7 +20,7 @@ const colors = {
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
   white: '\x1b[37m',
-  
+
   // Background colors
   bgBlack: '\x1b[40m',
   bgRed: '\x1b[41m',
@@ -67,14 +67,14 @@ const truncateData = (data, maxLength = 100) => {
   if (typeof data === 'string' && data.length > maxLength) {
     return data.substring(0, maxLength) + '...';
   }
-  
+
   if (typeof data === 'object' && data !== null) {
     const str = JSON.stringify(data);
     if (str.length > maxLength) {
       return JSON.stringify(data, null, 0).substring(0, maxLength) + '...';
     }
   }
-  
+
   return data;
 };
 
@@ -97,14 +97,14 @@ const formatSocketInfo = socket => {
  */
 const colorLog = (level, color, prefix, message, data = null) => {
   if (!isDebugEnabled && level !== 'error') return;
-  
+
   const timestamp = getTimestamp();
   const coloredPrefix = `${color}${prefix}${colors.reset}`;
-  
-  let logMessage = `${colors.dim}[${timestamp}]${colors.reset} ${coloredPrefix} ${message}`;
-  
+
+  const logMessage = `${colors.dim}[${timestamp}]${colors.reset} ${coloredPrefix} ${message}`;
+
   console.log(logMessage);
-  
+
   if (data) {
     console.log(`${colors.dim}${JSON.stringify(data, null, 2)}${colors.reset}`);
   }
@@ -123,7 +123,7 @@ const logger = {
       ...data,
     });
   },
-  
+
   /**
    * Log disconnection events
    */
@@ -133,14 +133,14 @@ const logger = {
       ...data,
     });
   },
-  
+
   /**
    * Log event emissions (server -> client)
    */
   emit: (eventName, target, data = null) => {
     eventStats.totalEvents++;
     eventStats.eventCounts[eventName] = (eventStats.eventCounts[eventName] || 0) + 1;
-    
+
     const truncatedData = truncateData(data);
     colorLog('info', colors.cyan, '[SOCKET:EMIT]', `${eventName} -> ${target}`, {
       event: eventName,
@@ -149,30 +149,36 @@ const logger = {
       count: eventStats.eventCounts[eventName],
     });
   },
-  
+
   /**
    * Log event reception (client -> server)
    */
   receive: (socket, eventName, data = null) => {
     eventStats.totalEvents++;
     eventStats.eventCounts[eventName] = (eventStats.eventCounts[eventName] || 0) + 1;
-    
+
     const truncatedData = truncateData(data);
-    colorLog('info', colors.blue, '[SOCKET:RECV]', `${eventName} <- ${socket.userId || socket.id}`, {
-      event: eventName,
-      from: formatSocketInfo(socket),
-      data: truncatedData,
-      count: eventStats.eventCounts[eventName],
-    });
+    colorLog(
+      'info',
+      colors.blue,
+      '[SOCKET:RECV]',
+      `${eventName} <- ${socket.userId || socket.id}`,
+      {
+        event: eventName,
+        from: formatSocketInfo(socket),
+        data: truncatedData,
+        count: eventStats.eventCounts[eventName],
+      }
+    );
   },
-  
+
   /**
    * Log authorization checks
    */
   auth: (socket, eventName, authorized, requiredRoles = []) => {
     const color = authorized ? colors.green : colors.red;
     const status = authorized ? 'AUTHORIZED' : 'DENIED';
-    
+
     colorLog('info', color, '[SOCKET:AUTH]', `${status} - ${eventName}`, {
       event: eventName,
       userId: socket.userId,
@@ -181,14 +187,14 @@ const logger = {
       authorized,
     });
   },
-  
+
   /**
    * Log validation results
    */
   validation: (socket, eventName, valid, error = null) => {
     const color = valid ? colors.green : colors.yellow;
     const status = valid ? 'VALID' : 'INVALID';
-    
+
     colorLog('info', color, '[SOCKET:VALID]', `${status} - ${eventName}`, {
       event: eventName,
       userId: socket.userId,
@@ -196,13 +202,13 @@ const logger = {
       error,
     });
   },
-  
+
   /**
    * Log errors
    */
   error: (socket, eventName, error, context = null) => {
     eventStats.errorCounts[eventName] = (eventStats.errorCounts[eventName] || 0) + 1;
-    
+
     colorLog('error', colors.red, '[SOCKET:ERROR]', `${eventName} - ${error.message}`, {
       event: eventName,
       from: socket ? formatSocketInfo(socket) : 'N/A',
@@ -215,7 +221,7 @@ const logger = {
       errorCount: eventStats.errorCounts[eventName],
     });
   },
-  
+
   /**
    * Log room operations
    */
@@ -228,7 +234,7 @@ const logger = {
       ...data,
     });
   },
-  
+
   /**
    * Log broadcast operations
    */
@@ -240,34 +246,34 @@ const logger = {
       data: truncatedData,
     });
   },
-  
+
   /**
    * Log performance metrics
    */
   performance: (operation, duration, data = null) => {
     const color = duration > 1000 ? colors.red : duration > 500 ? colors.yellow : colors.green;
-    
+
     colorLog('info', color, '[SOCKET:PERF]', `${operation} - ${formatDuration(duration)}`, {
       operation,
       duration: `${duration}ms`,
       ...data,
     });
   },
-  
+
   /**
    * Log general info
    */
   info: (message, data = null) => {
     colorLog('info', colors.white, '[SOCKET:INFO]', message, data);
   },
-  
+
   /**
    * Log warnings
    */
   warn: (message, data = null) => {
     colorLog('warn', colors.yellow + colors.bright, '[SOCKET:WARN]', message, data);
   },
-  
+
   /**
    * Log debug information
    */
@@ -282,7 +288,7 @@ const logger = {
 const getStats = () => {
   const uptime = Date.now() - eventStats.startTime;
   const eventsPerMinute = (eventStats.totalEvents / (uptime / 60000)).toFixed(2);
-  
+
   return {
     uptime: formatDuration(uptime),
     totalEvents: eventStats.totalEvents,
@@ -312,15 +318,27 @@ const resetStats = () => {
  */
 const printStats = () => {
   const stats = getStats();
-  
-  console.log('\n' + colors.cyan + colors.bright + '═══════════════════════════════════════════════════' + colors.reset);
+
+  console.log(
+    '\n' +
+      colors.cyan +
+      colors.bright +
+      '═══════════════════════════════════════════════════' +
+      colors.reset
+  );
   console.log(colors.cyan + colors.bright + '           SOCKET EVENT STATISTICS' + colors.reset);
-  console.log(colors.cyan + colors.bright + '═══════════════════════════════════════════════════' + colors.reset + '\n');
-  
+  console.log(
+    colors.cyan +
+      colors.bright +
+      '═══════════════════════════════════════════════════' +
+      colors.reset +
+      '\n'
+  );
+
   console.log(`${colors.white}Uptime:${colors.reset} ${stats.uptime}`);
   console.log(`${colors.white}Total Events:${colors.reset} ${stats.totalEvents}`);
   console.log(`${colors.white}Events/Minute:${colors.reset} ${stats.eventsPerMinute}\n`);
-  
+
   if (stats.topEvents.length > 0) {
     console.log(colors.green + 'Top Events:' + colors.reset);
     stats.topEvents.forEach(({ event, count }, index) => {
@@ -328,7 +346,7 @@ const printStats = () => {
     });
     console.log('');
   }
-  
+
   const errorCount = Object.values(stats.errorCounts).reduce((sum, count) => sum + count, 0);
   if (errorCount > 0) {
     console.log(colors.red + 'Errors:' + colors.reset);
@@ -339,8 +357,14 @@ const printStats = () => {
       });
     console.log('');
   }
-  
-  console.log(colors.cyan + colors.bright + '═══════════════════════════════════════════════════' + colors.reset + '\n');
+
+  console.log(
+    colors.cyan +
+      colors.bright +
+      '═══════════════════════════════════════════════════' +
+      colors.reset +
+      '\n'
+  );
 };
 
 /**
@@ -349,31 +373,31 @@ const printStats = () => {
 const createLoggingMiddleware = () => {
   return (socket, next) => {
     if (!isDebugEnabled) return next();
-    
+
     logger.connection(socket, 'Middleware: Authentication in progress');
-    
+
     // Log all incoming events
     const originalOnevent = socket.onevent;
     socket.onevent = function (packet) {
       const [eventName, data] = packet.data || [];
-      
+
       if (eventName && !eventName.startsWith('ping') && !eventName.startsWith('pong')) {
         logger.receive(socket, eventName, data);
       }
-      
+
       originalOnevent.call(this, packet);
     };
-    
+
     // Log all outgoing events
     const originalEmit = socket.emit;
     socket.emit = function (eventName, ...args) {
       if (eventName && !eventName.startsWith('ping') && !eventName.startsWith('pong')) {
         logger.emit(eventName, socket.id, args[0]);
       }
-      
+
       return originalEmit.apply(this, [eventName, ...args]);
     };
-    
+
     next();
   };
 };
@@ -386,26 +410,26 @@ const withPerformanceLogging = (eventName, handler) => {
     if (!isDebugEnabled) {
       return handler.apply(this, args);
     }
-    
+
     const startTime = Date.now();
-    
+
     try {
       const result = await handler.apply(this, args);
       const duration = Date.now() - startTime;
-      
+
       logger.performance(eventName, duration, {
         success: true,
       });
-      
+
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      
+
       logger.performance(eventName, duration, {
         success: false,
         error: error.message,
       });
-      
+
       throw error;
     }
   };

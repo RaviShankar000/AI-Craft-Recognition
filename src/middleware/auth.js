@@ -351,13 +351,13 @@ const optionalAuth = async (req, res, next) => {
           role: req.user.role,
         });
       }
-    } catch (error) {
+    } catch {
       // If token verification fails, just continue without auth
       console.log('[AUTH DEBUG] Optional auth - Token verification failed, proceeding as public');
     }
 
     next();
-  } catch (error) {
+  } catch {
     // On any error, proceed without authentication
     next();
   }

@@ -13,15 +13,8 @@ const {
   handleTimeout,
   broadcastConnectionStats,
 } = require('../handlers/socketHandlers');
-const {
-  registerSecureEvent,
-  getEventsForRole,
-} = require('../middleware/socketEventAuth');
-const {
-  logger,
-  createLoggingMiddleware,
-  printStats,
-} = require('../utils/socketDebugLogger');
+const { registerSecureEvent, getEventsForRole } = require('../middleware/socketEventAuth');
+const { logger, createLoggingMiddleware, printStats } = require('../utils/socketDebugLogger');
 
 /**
  * Initialize Socket.IO server with authentication

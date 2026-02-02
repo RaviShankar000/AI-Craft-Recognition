@@ -109,7 +109,7 @@ const optionalSocketAuth = async (socket, next) => {
     }
 
     next();
-  } catch (error) {
+  } catch {
     // Authentication failed, but continue as guest
     socket.userId = null;
     socket.userRole = 'guest';

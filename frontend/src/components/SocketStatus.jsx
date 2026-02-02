@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { useSocketEvent, useSocketPing } from '../hooks/useSocket';
 import './SocketStatus.css';

@@ -140,9 +140,7 @@ const handleDisconnection = (socket, reason) => {
       socketId: socket.id,
       reason: reasonDescription,
       userRole,
-      remainingConnections: activeConnections.has(userId)
-        ? activeConnections.get(userId).size
-        : 0,
+      remainingConnections: activeConnections.has(userId) ? activeConnections.get(userId).size : 0,
     },
   }).catch(err => {
     console.error('[SOCKET] Failed to log disconnection:', err.message);

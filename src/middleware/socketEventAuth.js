@@ -47,8 +47,8 @@ const eventRoleMapping = {
   'notification:dismiss': ['admin', 'seller', 'user'],
 
   // Public events (all authenticated users)
-  'ping': ['admin', 'seller', 'user'],
-  'disconnect_request': ['admin', 'seller', 'user'],
+  ping: ['admin', 'seller', 'user'],
+  disconnect_request: ['admin', 'seller', 'user'],
 };
 
 /**
@@ -436,10 +436,10 @@ const registerSecureEvent = (socket, eventName, handler, options = {}) => {
       }
     } catch (error) {
       console.error(`[SOCKET AUTHZ] Error handling event ${eventName}:`, error);
-      
+
       // Debug log error
       logger.error(socket, eventName, error);
-      
+
       socket.emit('error:internal', {
         code: 'INTERNAL_ERROR',
         message: 'An error occurred processing your request',
