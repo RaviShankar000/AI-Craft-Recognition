@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const Craft = require('../models/Craft');
+const { getIO } = require('../config/socket');
 const {
   logProductCreated,
   logProductUpdated,

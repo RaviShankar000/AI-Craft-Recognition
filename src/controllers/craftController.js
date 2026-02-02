@@ -523,7 +523,8 @@ const voiceSearchCrafts = async (req, res) => {
         );
       } catch (socketError) {
         console.error('[SOCKET] Failed to emit analytics:search:', socketError.message);
-      }\n    } catch (analyticsError) {
+      }
+    } catch (analyticsError) {
       console.error('Analytics tracking failed:', analyticsError.message);
     }
 

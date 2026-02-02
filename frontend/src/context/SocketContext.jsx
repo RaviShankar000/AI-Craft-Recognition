@@ -23,7 +23,7 @@ export const SocketProvider = ({ children }) => {
     }
 
     // Socket.IO server URL
-    const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
     console.log('[SOCKET] Connecting to:', SOCKET_URL);
 
