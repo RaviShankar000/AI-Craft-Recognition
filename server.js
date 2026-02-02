@@ -90,7 +90,12 @@ app.get('/health', (req, res) => {
 
 // Error handling middleware
 const handleMulterError = require('./src/middleware/multerErrorHandler');
-const errorHandler = require('./src/middleware/errorHandler');
+const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
+
+// 404 handler (must be after all routes)
+app.use(notFoundHandler);
+
+// Global error handler (must be last)
 app.use(handleMulterError);
 app.use(errorHandler);
 
