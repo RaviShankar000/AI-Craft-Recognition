@@ -23,6 +23,16 @@ connectDB().catch(err => {
   console.error('Failed to initialize database connection:', err);
 });
 
+// Initialize background jobs
+const { initializeJobs, stopAllJobs } = require('./src/jobs');
+try {
+  initializeJobs();
+  logger.info('Background jobs started successfully');
+} catch (error) {
+  logger.error('Failed to start background jobs:', error);
+}
+
+
 // Security Middleware
 // Helmet helps secure Express apps by setting various HTTP headers
 app.use(helmet({

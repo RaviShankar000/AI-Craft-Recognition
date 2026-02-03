@@ -671,4 +671,49 @@ router.patch('/seller-applications/:id/approve', approveApplication);
  */
 router.patch('/seller-applications/:id/reject', rejectApplication);
 
+/**
+ * Trigger file cleanup job manually
+ * @route POST /api/admin/jobs/file-cleanup
+ * @access Private/Admin
+ */
+router.post('/jobs/file-cleanup', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { runCleanupNow } = require('../jobs/fileCleanup');
+    const stats = await runCleanupNow();
+    
+    res.status(200).json({
+      success: true,
+      message: 'File cleanup completed',
+      data: stats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Get background jobs status
+ * @route GET /api/admin/jobs/status
+ * @access Private/Admin
+ */
+router.get('/jobs/status', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { getJobStatus } = require('../jobs');
+    const status = getJobStatus();
+    
+    res.status(200).json({
+      success: true,
+      data: status
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

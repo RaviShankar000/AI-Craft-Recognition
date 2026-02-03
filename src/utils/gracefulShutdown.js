@@ -55,6 +55,10 @@ class GracefulShutdown {
       logger.info('4️⃣ Closing database connections...');
       await this.closeDatabase();
 
+      // Stop background jobs
+      logger.info('5️⃣ Stopping background jobs...');
+      await this.stopBackgroundJobs();
+
       clearTimeout(shutdownTimeout);
       logger.info('✅ Graceful shutdown completed successfully');
       process.exit(0);
@@ -146,6 +150,20 @@ class GracefulShutdown {
     } catch (error) {
       logger.error('Error closing database:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Stop background jobs
+   */
+  async stopBackgroundJobs() {
+    try {
+      const { stopAllJobs } = require('../jobs');
+      stopAllJobs();
+      logger.info('✓ Background jobs stopped');
+    } catch (error) {
+      logger.error('Error stopping background jobs:', error);
+      // Don't throw - jobs stopping failure shouldn't prevent shutdown
     }
   }
 
