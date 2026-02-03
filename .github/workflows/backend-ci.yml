@@ -1,0 +1,179 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'server.js'
+      - 'package.json'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'server.js'
+      - 'package.json'
+
+jobs:
+  lint:
+    name: Lint Backend Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run ESLint
+        run: npm run lint
+      
+      - name: Check code formatting
+        run: npm run format:check
+  
+  test:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run unit tests
+        run: npm run test:unit
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-for-ci
+          JWT_EXPIRE: 7d
+          MONGODB_URI: mongodb://localhost:27017/craft-test
+          PORT: 5001
+      
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-for-ci
+          JWT_EXPIRE: 7d
+          MONGODB_URI: mongodb://localhost:27017/craft-test
+          PORT: 5001
+      
+      - name: Generate coverage report
+        run: npm run test:coverage
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-for-ci
+          JWT_EXPIRE: 7d
+          MONGODB_URI: mongodb://localhost:27017/craft-test
+          PORT: 5001
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: backend
+          name: backend-${{ matrix.node-version }}
+  
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Check for missing dependencies
+        run: |
+          if ! npm ls; then
+            echo "Missing or conflicting dependencies detected"
+            exit 1
+          fi
+      
+      - name: Verify application starts
+        run: |
+          timeout 30s npm start &
+          PID=$!
+          sleep 10
+          if ps -p $PID > /dev/null; then
+            echo "✓ Server started successfully"
+            kill $PID
+          else
+            echo "✗ Server failed to start"
+            exit 1
+          fi
+        env:
+          NODE_ENV: development
+          JWT_SECRET: test-secret
+          MONGODB_URI: mongodb://localhost:27017/test
+          PORT: 5000
+  
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: Check for vulnerable dependencies
+        run: |
+          AUDIT_RESULT=$(npm audit --json)
+          CRITICAL=$(echo $AUDIT_RESULT | jq '.metadata.vulnerabilities.critical')
+          HIGH=$(echo $AUDIT_RESULT | jq '.metadata.vulnerabilities.high')
+          
+          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+            echo "⚠️ Found $CRITICAL critical and $HIGH high severity vulnerabilities"
+            echo "Please run 'npm audit fix' to resolve"
+            exit 1
+          fi
