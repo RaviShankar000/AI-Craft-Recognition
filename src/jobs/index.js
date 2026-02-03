@@ -1,5 +1,6 @@
 const logger = require('../config/logger');
 const { scheduleFileCleanup } = require('./fileCleanup');
+const { scheduleAnalyticsAggregation } = require('./analyticsAggregation');
 
 /**
  * Job Manager
@@ -19,6 +20,11 @@ function initializeJobs() {
     const fileCleanupJob = scheduleFileCleanup();
     jobs.push({ name: 'fileCleanup', job: fileCleanupJob });
     logger.info('✓ File cleanup job initialized');
+
+    // Analytics aggregation job
+    const analyticsJob = scheduleAnalyticsAggregation();
+    jobs.push({ name: 'analyticsAggregation', job: analyticsJob });
+    logger.info('✓ Analytics aggregation job initialized');
 
     logger.info(`All background jobs initialized (${jobs.length} jobs)`);
   } catch (error) {

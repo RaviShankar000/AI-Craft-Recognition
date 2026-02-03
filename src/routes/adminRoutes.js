@@ -716,4 +716,82 @@ router.get('/jobs/status', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+/**
+ * Trigger analytics aggregation manually
+ * @route POST /api/admin/jobs/analytics-aggregation
+ * @access Private/Admin
+ */
+router.post('/jobs/analytics-aggregation', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { runAggregationNow } = require('../jobs/analyticsAggregation');
+    const { date } = req.body; // Optional: specify date
+    
+    const summary = await runAggregationNow(date ? new Date(date) : undefined);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Analytics aggregation completed',
+      data: summary
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Get daily analytics summary
+ * @route GET /api/admin/analytics/daily
+ * @access Private/Admin
+ */
+router.get('/analytics/daily', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { getDailySummary } = require('../jobs/analyticsAggregation');
+    const { date } = req.query;
+    
+    const summary = getDailySummary(date || new Date());
+    
+    if (!summary) {
+      return res.status(404).json({
+        success: false,
+        message: 'No summary available for this date. Try triggering aggregation first.'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: summary
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Get weekly analytics summary
+ * @route GET /api/admin/analytics/weekly
+ * @access Private/Admin
+ */
+router.get('/analytics/weekly', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { getWeeklySummary } = require('../jobs/analyticsAggregation');
+    const summaries = await getWeeklySummary();
+    
+    res.status(200).json({
+      success: true,
+      data: summaries
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
