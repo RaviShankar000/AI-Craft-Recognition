@@ -2,8 +2,11 @@ const axios = require('axios');
 const FormData = require('form-data');
 const http = require('http');
 const https = require('https');
+const logger = require('../config/logger');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
+const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 15000; // 15 seconds default
+const ENABLE_FALLBACK = process.env.ENABLE_AI_FALLBACK !== 'false'; // Default true
 
 // Create axios instance with connection pooling and keep-alive
 const httpAgent = new http.Agent({
@@ -22,7 +25,7 @@ const httpsAgent = new https.Agent({
 
 const aiClient = axios.create({
   baseURL: AI_SERVICE_URL,
-  timeout: 30000,
+  timeout: AI_TIMEOUT,
   httpAgent,
   httpsAgent,
   maxContentLength: Infinity,
@@ -33,6 +36,30 @@ const aiClient = axios.create({
  * AI Service - Handles communication with Flask AI microservice
  */
 class AIService {
+  /**
+   * Fallback prediction when AI service is unavailable
+   * Returns a generic response indicating the service is down
+   */
+  static getFallbackResponse(file) {
+    logger.warn('Using AI service fallback response', {
+      filename: file.originalname,
+      size: file.size
+    });
+
+    return {
+      success: true,
+      fallback: true,
+      data: {
+        predictions: [],
+        confidence: 0,
+        craftType: 'Unknown',
+        message: 'AI service is temporarily unavailable. Your image has been received and will be processed later.',
+        processingMode: 'fallback'
+      },
+      warning: 'AI service unavailable - fallback response used'
+    };
+  }
+
   /**
    * Check if AI service is healthy
    */
@@ -46,7 +73,7 @@ class AIService {
         data: response.data,
       };
     } catch (error) {
-      console.error('AI service health check failed:', error.message);
+      logger.error('AI service health check failed:', error.message);
       return {
         success: false,
         error: error.message,
@@ -96,15 +123,20 @@ class AIService {
         knownLength: file.size,
       });
 
-      // Send request to Flask AI service with retry logic
+      // Send request to Flask AI service with timeout
       const response = await aiClient.post('/predict', formData, {
         headers: {
           ...formData.getHeaders(),
         },
+        timeout: AI_TIMEOUT,
       });
 
       const duration = Date.now() - startTime;
-      console.log(`AI prediction completed in ${duration}ms`);
+      logger.info('AI prediction completed', {
+        filename: file.originalname,
+        duration: `${duration}ms`,
+        confidence: response.data.confidence
+      });
 
       return {
         success: true,
@@ -113,7 +145,25 @@ class AIService {
       };
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`AI prediction failed after ${duration}ms:`, error.message);
+      logger.error(`AI prediction failed after ${duration}ms:`, {
+        error: error.message,
+        code: error.code,
+        filename: file.originalname
+      });
+
+      // Check if fallback is enabled
+      if (ENABLE_FALLBACK && (
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ECONNABORTED' ||
+        error.code === 'ENOTFOUND'
+      )) {
+        logger.warn('AI service unavailable, using fallback', {
+          errorCode: error.code,
+          timeout: AI_TIMEOUT
+        });
+        return this.getFallbackResponse(file);
+      }
 
       if (error.response) {
         // AI service returned an error
@@ -127,13 +177,22 @@ class AIService {
         return {
           success: false,
           error: 'AI service unavailable',
-          message: 'Could not connect to AI service. Please ensure the service is running.',
+          message: 'Could not connect to AI service. The service may be down or unreachable.',
+          code: 'SERVICE_UNAVAILABLE'
         };
       } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
         return {
           success: false,
           error: 'Request timeout',
-          message: 'AI service took too long to respond. Please try again.',
+          message: `AI service did not respond within ${AI_TIMEOUT / 1000} seconds. Please try again with a smaller image.`,
+          code: 'TIMEOUT'
+        };
+      } else if (error.code === 'ENOTFOUND') {
+        return {
+          success: false,
+          error: 'AI service not found',
+          message: 'AI service URL is not configured correctly.',
+          code: 'NOT_FOUND'
         };
       } else {
         // Other error
@@ -141,6 +200,7 @@ class AIService {
           success: false,
           error: 'Request error',
           message: error.message,
+          code: error.code
         };
       }
     }
