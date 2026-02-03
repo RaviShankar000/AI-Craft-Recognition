@@ -1,19 +1,24 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import './App.css';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { LoadingProvider } from './context/LoadingContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute, AdminRoute, SellerRoute } from './components/RoleProtection';
+import { PageLoader } from './components/SkeletonLoaders';
+import { lazyWithRetry } from './utils/lazyLoad';
 import DashboardLayout from './components/DashboardLayout';
-import CraftPredictor from './components/CraftPredictor';
 import VoiceSearch from './components/VoiceSearch';
-import CraftUpload from './components/CraftUpload';
-import Chatbot from './components/Chatbot';
-import Marketplace from './components/Marketplace';
-import Cart from './components/Cart';
-import OrderHistory from './components/OrderHistory';
-import AdminAnalytics from './components/AdminAnalytics';
+
+// Lazy load heavy components
+const CraftPredictor = lazy(() => lazyWithRetry(() => import('./components/CraftPredictor')));
+const CraftUpload = lazy(() => lazyWithRetry(() => import('./components/CraftUpload')));
+const Chatbot = lazy(() => lazyWithRetry(() => import('./components/Chatbot')));
+const Marketplace = lazy(() => lazyWithRetry(() => import('./components/Marketplace')));
+const Cart = lazy(() => lazyWithRetry(() => import('./components/Cart')));
+const OrderHistory = lazy(() => lazyWithRetry(() => import('./components/OrderHistory')));
+const AdminAnalytics = lazy(() => lazyWithRetry(() => import('./components/AdminAnalytics')));
 
 function App() {
   return (
@@ -29,34 +34,50 @@ function App() {
                     <div className="app">
                       <VoiceSearch />
                       <div className="section-divider"></div>
-                      <CraftPredictor />
+                      <Suspense fallback={<PageLoader />}>
+                        <CraftPredictor />
+                      </Suspense>
                     </div>
                   </ProtectedRoute>
                 } />
                 <Route path="crafts" element={
                   <ProtectedRoute>
-                    <CraftUpload />
+                    <Suspense fallback={<PageLoader />}>
+                      <CraftUpload />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
-                <Route path="products" element={<Marketplace />} />
+                <Route path="products" element={
+                  <Suspense fallback={<PageLoader />}>
+                    <Marketplace />
+                  </Suspense>
+                } />
                 <Route path="cart" element={
                   <ProtectedRoute>
-                    <Cart />
+                    <Suspense fallback={<PageLoader />}>
+                      <Cart />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
                 <Route path="orders" element={
                   <ProtectedRoute>
-                    <OrderHistory />
+                    <Suspense fallback={<PageLoader />}>
+                      <OrderHistory />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
                 <Route path="analytics" element={
                   <AdminRoute>
-                    <AdminAnalytics />
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminAnalytics />
+                    </Suspense>
                   </AdminRoute>
                 } />
                 <Route path="chatbot" element={
                   <ProtectedRoute>
-                    <Chatbot />
+                    <Suspense fallback={<PageLoader />}>
+                      <Chatbot />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
               </Route>
