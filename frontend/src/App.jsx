@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
+import 'react-loading-skeleton/dist/skeleton.css';
+import { LoadingProvider } from './context/LoadingContext';
 import DashboardLayout from './components/DashboardLayout';
 import CraftPredictor from './components/CraftPredictor';
 import VoiceSearch from './components/VoiceSearch';
@@ -12,7 +14,8 @@ import AdminAnalytics from './components/AdminAnalytics';
 
 function App() {
   return (
-    <Router>
+    <LoadingProvider>
+      <Router>
       <Routes>
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
@@ -32,6 +35,7 @@ function App() {
         </Route>
       </Routes>
     </Router>
+    </LoadingProvider>
   );
 }
 
