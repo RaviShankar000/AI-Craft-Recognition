@@ -1,4 +1,5 @@
 const axios = require('axios');
+const axiosRetry = require('axios-retry').default;
 const FormData = require('form-data');
 const http = require('http');
 const https = require('https');
@@ -7,6 +8,8 @@ const logger = require('../config/logger');
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
 const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 15000; // 15 seconds default
 const ENABLE_FALLBACK = process.env.ENABLE_AI_FALLBACK !== 'false'; // Default true
+const MAX_RETRIES = parseInt(process.env.AI_MAX_RETRIES) || 3; // Default 3 retries
+const RETRY_DELAY = parseInt(process.env.AI_RETRY_DELAY) || 1000; // Default 1 second
 
 // Create axios instance with connection pooling and keep-alive
 const httpAgent = new http.Agent({
@@ -30,6 +33,40 @@ const aiClient = axios.create({
   httpsAgent,
   maxContentLength: Infinity,
   maxBodyLength: Infinity,
+});
+
+// Configure retry logic
+axiosRetry(aiClient, {
+  retries: MAX_RETRIES,
+  retryDelay: (retryCount) => {
+    const delay = RETRY_DELAY * Math.pow(2, retryCount - 1); // Exponential backoff
+    logger.info(`Retry attempt ${retryCount}/${MAX_RETRIES}, waiting ${delay}ms`);
+    return delay;
+  },
+  retryCondition: (error) => {
+    // Retry on network errors or 5xx server errors
+    const shouldRetry = axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+      (error.response && error.response.status >= 500);
+    
+    if (shouldRetry) {
+      logger.warn('AI service request failed, will retry', {
+        error: error.message,
+        code: error.code,
+        status: error.response?.status
+      });
+    }
+    
+    return shouldRetry;
+  },
+  shouldResetTimeout: true,
+  onRetry: (retryCount, error, requestConfig) => {
+    logger.info('Retrying AI service request', {
+      attempt: retryCount,
+      maxRetries: MAX_RETRIES,
+      error: error.message,
+      url: requestConfig.url
+    });
+  }
 });
 
 /**
@@ -135,20 +172,25 @@ class AIService {
       logger.info('AI prediction completed', {
         filename: file.originalname,
         duration: `${duration}ms`,
-        confidence: response.data.confidence
+        confidence: response.data.confidence,
+        retries: response.config?.['axios-retry']?.retryCount || 0
       });
 
       return {
         success: true,
         data: response.data,
         duration,
+        retries: response.config?.['axios-retry']?.retryCount || 0
       };
     } catch (error) {
       const duration = Date.now() - startTime;
-      logger.error(`AI prediction failed after ${duration}ms:`, {
+      const retryCount = error.config?.['axios-retry']?.retryCount || 0;
+      
+      logger.error(`AI prediction failed after ${duration}ms and ${retryCount} retries:`, {
         error: error.message,
         code: error.code,
-        filename: file.originalname
+        filename: file.originalname,
+        retries: retryCount
       });
 
       // Check if fallback is enabled
@@ -158,9 +200,10 @@ class AIService {
         error.code === 'ECONNABORTED' ||
         error.code === 'ENOTFOUND'
       )) {
-        logger.warn('AI service unavailable, using fallback', {
+        logger.warn('AI service unavailable after retries, using fallback', {
           errorCode: error.code,
-          timeout: AI_TIMEOUT
+          timeout: AI_TIMEOUT,
+          retries: retryCount
         });
         return this.getFallbackResponse(file);
       }
@@ -172,27 +215,31 @@ class AIService {
           error: error.response.data.error || 'AI service error',
           message: error.response.data.message || error.message,
           status: error.response.status,
+          retries: retryCount
         };
       } else if (error.code === 'ECONNREFUSED') {
         return {
           success: false,
           error: 'AI service unavailable',
-          message: 'Could not connect to AI service. The service may be down or unreachable.',
-          code: 'SERVICE_UNAVAILABLE'
+          message: `Could not connect to AI service after ${retryCount} retries. The service may be down or unreachable.`,
+          code: 'SERVICE_UNAVAILABLE',
+          retries: retryCount
         };
       } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
         return {
           success: false,
           error: 'Request timeout',
-          message: `AI service did not respond within ${AI_TIMEOUT / 1000} seconds. Please try again with a smaller image.`,
-          code: 'TIMEOUT'
+          message: `AI service did not respond within ${AI_TIMEOUT / 1000} seconds after ${retryCount} retries. Please try again with a smaller image.`,
+          code: 'TIMEOUT',
+          retries: retryCount
         };
       } else if (error.code === 'ENOTFOUND') {
         return {
           success: false,
           error: 'AI service not found',
           message: 'AI service URL is not configured correctly.',
-          code: 'NOT_FOUND'
+          code: 'NOT_FOUND',
+          retries: retryCount
         };
       } else {
         // Other error
@@ -200,7 +247,8 @@ class AIService {
           success: false,
           error: 'Request error',
           message: error.message,
-          code: error.code
+          code: error.code,
+          retries: retryCount
         };
       }
     }
