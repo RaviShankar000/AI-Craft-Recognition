@@ -1,4 +1,5 @@
 const rateLimit = require('express-rate-limit');
+const logger = require('../config/logger');
 
 /**
  * Rate Limiting Middleware
@@ -22,6 +23,12 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: false, // Count all requests
   skipFailedRequests: false, // Count failed requests too
   handler: (req, res) => {
+    logger.logSecurity('auth_rate_limit_exceeded', {
+      ip: req.ip,
+      path: req.path,
+      email: req.body?.email || 'unknown',
+      userAgent: req.get('user-agent')
+    });
     res.status(429).json({
       success: false,
       error: 'Too many authentication attempts',
@@ -48,6 +55,11 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: false,
   handler: (req, res) => {
+    logger.logSecurity('api_rate_limit_exceeded', {
+      ip: req.ip,
+      path: req.path,
+      userAgent: req.get('user-agent')
+    });
     res.status(429).json({
       success: false,
       error: 'Rate limit exceeded',
@@ -73,6 +85,12 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: false,
   handler: (req, res) => {
+    logger.logSecurity('ai_rate_limit_exceeded', {
+      ip: req.ip,
+      path: req.path,
+      userId: req.user?.id || 'anonymous',
+      userAgent: req.get('user-agent')
+    });
     res.status(429).json({
       success: false,
       error: 'AI service rate limit exceeded',
@@ -98,6 +116,12 @@ const updateLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: false,
   handler: (req, res) => {
+    logger.logSecurity('update_rate_limit_exceeded', {
+      ip: req.ip,
+      path: req.path,
+      userId: req.user?.id || 'anonymous',
+      userAgent: req.get('user-agent')
+    });
     res.status(429).json({
       success: false,
       error: 'Update rate limit exceeded',
@@ -123,10 +147,104 @@ const chatLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: false,
   handler: (req, res) => {
+    logger.logSecurity('chat_rate_limit_exceeded', {
+      ip: req.ip,
+      path: req.path,
+      userId: req.user?.id || 'anonymous',
+      userAgent: req.get('user-agent')
+    });
     res.status(429).json({
       success: false,
       error: 'Chat service rate limit exceeded',
       message: 'You have made too many chat or speech requests. Please try again after 15 minutes.',
+      retryAfter: '15 minutes',
+    });
+  },
+});
+
+/**
+ * Registration rate limiter
+ * - Prevents mass account creation
+ * - 3 requests per hour per IP
+ */
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Limit each IP to 3 registrations per hour
+  message: {
+    success: false,
+    error: 'Too many accounts created from this IP',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.logSecurity('registration_rate_limit_exceeded', {
+      ip: req.ip,
+      email: req.body?.email || 'unknown',
+      userAgent: req.get('user-agent')
+    });
+    res.status(429).json({
+      success: false,
+      error: 'Registration rate limit exceeded',
+      message: 'Too many accounts created from this IP, please try again after an hour.',
+      retryAfter: '1 hour',
+    });
+  },
+});
+
+/**
+ * Password reset rate limiter
+ * - Prevents password reset abuse
+ * - 3 requests per hour per IP
+ */
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Limit each IP to 3 password resets per hour
+  message: {
+    success: false,
+    error: 'Too many password reset attempts',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.logSecurity('password_reset_rate_limit_exceeded', {
+      ip: req.ip,
+      email: req.body?.email || 'unknown',
+      userAgent: req.get('user-agent')
+    });
+    res.status(429).json({
+      success: false,
+      error: 'Password reset rate limit exceeded',
+      message: 'Too many password reset attempts, please try again after an hour.',
+      retryAfter: '1 hour',
+    });
+  },
+});
+
+/**
+ * File upload rate limiter
+ * - Prevents upload abuse
+ * - 10 requests per 15 minutes per IP
+ */
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 uploads per windowMs
+  message: {
+    success: false,
+    error: 'Too many file uploads from this IP',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.logSecurity('upload_rate_limit_exceeded', {
+      ip: req.ip,
+      path: req.path,
+      userId: req.user?.id || 'anonymous',
+      userAgent: req.get('user-agent')
+    });
+    res.status(429).json({
+      success: false,
+      error: 'Upload rate limit exceeded',
+      message: 'Too many file uploads from this IP, please try again later.',
       retryAfter: '15 minutes',
     });
   },
@@ -138,4 +256,7 @@ module.exports = {
   aiLimiter,
   updateLimiter,
   chatLimiter,
+  registerLimiter,
+  passwordResetLimiter,
+  uploadLimiter,
 };

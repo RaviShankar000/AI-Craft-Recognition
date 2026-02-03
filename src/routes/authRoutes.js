@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { register, login } = require('../controllers/authController');
 const { validateRegister, validateLogin } = require('../middleware/validation');
-const { authLimiter } = require('../middleware/rateLimiter');
+const { authLimiter, registerLimiter } = require('../middleware/rateLimiter');
 
 /**
  * PUBLIC ROUTES
@@ -10,8 +10,8 @@ const { authLimiter } = require('../middleware/rateLimiter');
  * Rate limited to prevent brute force attacks
  */
 
-// Register route - Rate limited: 5 requests per 15 minutes
-router.post('/register', authLimiter, validateRegister, register);
+// Register route - Rate limited: 3 requests per hour
+router.post('/register', registerLimiter, validateRegister, register);
 
 // Login route - Rate limited: 5 requests per 15 minutes
 router.post('/login', authLimiter, validateLogin, login);

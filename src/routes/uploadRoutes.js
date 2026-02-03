@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { uploadLimiter } = require('../middleware/rateLimiter');
 const upload = require('../config/multer');
 
 /**
@@ -13,7 +14,7 @@ const upload = require('../config/multer');
  * @route POST /api/upload/single
  * @access Private
  */
-router.post('/single', protect, upload.single('image'), (req, res) => {
+router.post('/single', protect, uploadLimiter, upload.single('image'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -45,7 +46,7 @@ router.post('/single', protect, upload.single('image'), (req, res) => {
  * @route POST /api/upload/multiple
  * @access Private
  */
-router.post('/multiple', protect, upload.array('images', 5), (req, res) => {
+router.post('/multiple', protect, uploadLimiter, upload.array('images', 5), (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
