@@ -13,7 +13,7 @@ class GracefulShutdown {
     this.connections = new Set();
 
     // Track active connections
-    this.server.on('connection', (connection) => {
+    this.server.on('connection', connection => {
       this.connections.add(connection);
       connection.on('close', () => {
         this.connections.delete(connection);
@@ -74,7 +74,7 @@ class GracefulShutdown {
    */
   stopServer() {
     return new Promise((resolve, reject) => {
-      this.server.close((err) => {
+      this.server.close(err => {
         if (err) {
           logger.error('Error closing server:', err);
           return reject(err);
@@ -89,7 +89,7 @@ class GracefulShutdown {
    * Close Socket.IO connections
    */
   async closeSocketIO() {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (!this.io) {
         return resolve();
       }
@@ -97,7 +97,7 @@ class GracefulShutdown {
       const sockets = Array.from(this.io.sockets.sockets.values());
       logger.info(`  Disconnecting ${sockets.length} socket(s)...`);
 
-      sockets.forEach((socket) => {
+      sockets.forEach(socket => {
         socket.disconnect(true);
       });
 
@@ -118,7 +118,7 @@ class GracefulShutdown {
    * Close active HTTP connections
    */
   async closeConnections() {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (this.connections.size === 0) {
         logger.info('✓ No active HTTP connections to close');
         return resolve();
@@ -126,7 +126,7 @@ class GracefulShutdown {
 
       logger.info(`  Closing ${this.connections.size} HTTP connection(s)...`);
 
-      this.connections.forEach((connection) => {
+      this.connections.forEach(connection => {
         connection.end();
         connection.destroy();
       });
@@ -182,7 +182,7 @@ class GracefulShutdown {
     });
 
     // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', error => {
       logger.error('💥 Uncaught Exception:', error);
       this.shutdown('uncaughtException');
     });

@@ -188,7 +188,7 @@ router.get('/analytics/summary', async (req, res) => {
       endDate,
       eventType,
     });
-    
+
     res.status(200).json({
       success: true,
       data: summary,
@@ -210,7 +210,7 @@ router.get('/analytics/popular-searches', async (req, res) => {
   try {
     const { limit = 10 } = req.query;
     const searches = await AnalyticsService.getPopularSearches(parseInt(limit));
-    
+
     res.status(200).json({
       success: true,
       data: searches,
@@ -235,7 +235,7 @@ router.get('/analytics/conversion-funnel', async (req, res) => {
       startDate,
       endDate,
     });
-    
+
     res.status(200).json({
       success: true,
       data: funnel,
@@ -276,23 +276,23 @@ router.get('/analytics/throttle-stats', (req, res) => {
 router.patch('/analytics/throttle-interval', (req, res) => {
   try {
     const { eventType, interval } = req.body;
-    
+
     if (!eventType || !interval) {
       return res.status(400).json({
         success: false,
         error: 'Event type and interval are required',
       });
     }
-    
+
     if (interval < 0) {
       return res.status(400).json({
         success: false,
         error: 'Interval must be positive',
       });
     }
-    
+
     eventThrottler.setInterval(eventType, parseInt(interval));
-    
+
     res.status(200).json({
       success: true,
       message: `Throttle interval for ${eventType} updated to ${interval}ms`,
@@ -680,16 +680,16 @@ router.post('/jobs/file-cleanup', protect, authorize('admin'), async (req, res) 
   try {
     const { runCleanupNow } = require('../jobs/fileCleanup');
     const stats = await runCleanupNow();
-    
+
     res.status(200).json({
       success: true,
       message: 'File cleanup completed',
-      data: stats
+      data: stats,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -703,15 +703,15 @@ router.get('/jobs/status', protect, authorize('admin'), async (req, res) => {
   try {
     const { getJobStatus } = require('../jobs');
     const status = getJobStatus();
-    
+
     res.status(200).json({
       success: true,
-      data: status
+      data: status,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -725,18 +725,18 @@ router.post('/jobs/analytics-aggregation', protect, authorize('admin'), async (r
   try {
     const { runAggregationNow } = require('../jobs/analyticsAggregation');
     const { date } = req.body; // Optional: specify date
-    
+
     const summary = await runAggregationNow(date ? new Date(date) : undefined);
-    
+
     res.status(200).json({
       success: true,
       message: 'Analytics aggregation completed',
-      data: summary
+      data: summary,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -750,24 +750,24 @@ router.get('/analytics/daily', protect, authorize('admin'), async (req, res) => 
   try {
     const { getDailySummary } = require('../jobs/analyticsAggregation');
     const { date } = req.query;
-    
+
     const summary = getDailySummary(date || new Date());
-    
+
     if (!summary) {
       return res.status(404).json({
         success: false,
-        message: 'No summary available for this date. Try triggering aggregation first.'
+        message: 'No summary available for this date. Try triggering aggregation first.',
       });
     }
-    
+
     res.status(200).json({
       success: true,
-      data: summary
+      data: summary,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -781,15 +781,15 @@ router.get('/analytics/weekly', protect, authorize('admin'), async (req, res) =>
   try {
     const { getWeeklySummary } = require('../jobs/analyticsAggregation');
     const summaries = await getWeeklySummary();
-    
+
     res.status(200).json({
       success: true,
-      data: summaries
+      data: summaries,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });

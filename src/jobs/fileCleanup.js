@@ -55,7 +55,7 @@ async function getUploadedFiles() {
   try {
     const files = await fs.readdir(UPLOAD_DIR);
     const fileStats = await Promise.all(
-      files.map(async (file) => {
+      files.map(async file => {
         const filePath = path.join(UPLOAD_DIR, file);
         const stats = await fs.stat(filePath);
         return {
@@ -63,11 +63,11 @@ async function getUploadedFiles() {
           path: filePath,
           size: stats.size,
           mtime: stats.mtime,
-          age: Date.now() - stats.mtime.getTime()
+          age: Date.now() - stats.mtime.getTime(),
         };
       })
     );
-    
+
     logger.info(`Found ${fileStats.length} files in uploads directory`);
     return fileStats;
   } catch (error) {
@@ -110,7 +110,7 @@ async function deleteUnusedFiles() {
       unreferenced: 0,
       tooNew: 0,
       deleted: 0,
-      errors: 0
+      errors: 0,
     };
 
     for (const file of uploadedFiles) {
@@ -128,7 +128,9 @@ async function deleteUnusedFiles() {
       // Check file age
       if (file.age < maxAge) {
         stats.tooNew++;
-        logger.debug(`File ${file.name} is unreferenced but only ${Math.floor(file.age / (24 * 60 * 60 * 1000))} days old`);
+        logger.debug(
+          `File ${file.name} is unreferenced but only ${Math.floor(file.age / (24 * 60 * 60 * 1000))} days old`
+        );
         continue;
       }
 
@@ -142,7 +144,9 @@ async function deleteUnusedFiles() {
       try {
         await fs.unlink(file.path);
         stats.deleted++;
-        logger.info(`Deleted unused file: ${file.name} (${Math.floor(file.size / 1024)}KB, ${Math.floor(file.age / (24 * 60 * 60 * 1000))} days old)`);
+        logger.info(
+          `Deleted unused file: ${file.name} (${Math.floor(file.size / 1024)}KB, ${Math.floor(file.age / (24 * 60 * 60 * 1000))} days old)`
+        );
       } catch (error) {
         stats.errors++;
         logger.error(`Failed to delete file ${file.name}:`, error);
@@ -154,8 +158,8 @@ async function deleteUnusedFiles() {
       duration: `${duration}ms`,
       stats: {
         ...stats,
-        spaceSaved: `${Math.floor(filesToDelete.reduce((sum, f) => sum + f.size, 0) / 1024)}KB`
-      }
+        spaceSaved: `${Math.floor(filesToDelete.reduce((sum, f) => sum + f.size, 0) / 1024)}KB`,
+      },
     });
 
     return stats;
@@ -171,17 +175,21 @@ async function deleteUnusedFiles() {
  */
 function scheduleFileCleanup() {
   // Run every day at 2:00 AM
-  const job = cron.schedule('0 2 * * *', async () => {
-    try {
-      logger.info('File cleanup job triggered by schedule');
-      await deleteUnusedFiles();
-    } catch (error) {
-      logger.error('Scheduled file cleanup failed:', error);
+  const job = cron.schedule(
+    '0 2 * * *',
+    async () => {
+      try {
+        logger.info('File cleanup job triggered by schedule');
+        await deleteUnusedFiles();
+      } catch (error) {
+        logger.error('Scheduled file cleanup failed:', error);
+      }
+    },
+    {
+      scheduled: true,
+      timezone: 'UTC',
     }
-  }, {
-    scheduled: true,
-    timezone: "UTC"
-  });
+  );
 
   logger.info('File cleanup job scheduled (daily at 2:00 AM UTC)');
   return job;
@@ -198,5 +206,5 @@ async function runCleanupNow() {
 module.exports = {
   scheduleFileCleanup,
   runCleanupNow,
-  deleteUnusedFiles
+  deleteUnusedFiles,
 };

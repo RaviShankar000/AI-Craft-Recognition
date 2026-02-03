@@ -39,13 +39,35 @@ router.get('/:id', validateObjectId, apiLimiter, getProductById);
  */
 
 // Create new product - Rate limited: 20 requests per 15 minutes
-router.post('/', protect, authorize('seller', 'admin'), validateProduct, updateLimiter, createProduct);
+router.post(
+  '/',
+  protect,
+  authorize('seller', 'admin'),
+  validateProduct,
+  updateLimiter,
+  createProduct
+);
 
 // Update product - Rate limited: 20 requests per 15 minutes
-router.put('/:id', protect, authorize('seller', 'admin'), validateObjectId, validateProduct, updateLimiter, updateProduct);
+router.put(
+  '/:id',
+  protect,
+  authorize('seller', 'admin'),
+  validateObjectId,
+  validateProduct,
+  updateLimiter,
+  updateProduct
+);
 
 // Delete product - Rate limited: 20 requests per 15 minutes
-router.delete('/:id', protect, authorize('seller', 'admin'), validateObjectId, updateLimiter, deleteProduct);
+router.delete(
+  '/:id',
+  protect,
+  authorize('seller', 'admin'),
+  validateObjectId,
+  updateLimiter,
+  deleteProduct
+);
 
 // Stock management route - Rate limited: 20 requests per 15 minutes
 router.patch(

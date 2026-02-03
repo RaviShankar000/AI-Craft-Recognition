@@ -37,7 +37,7 @@ const consoleFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}${info.stack ? '\n' + info.stack : ''}`
+    info => `${info.timestamp} ${info.level}: ${info.message}${info.stack ? '\n' + info.stack : ''}`
   )
 );
 
@@ -103,7 +103,7 @@ const logger = winston.createLogger({
 
 // Create stream for morgan integration
 logger.stream = {
-  write: (message) => {
+  write: message => {
     logger.http(message.trim());
   },
 };

@@ -18,9 +18,9 @@ const sanitizeMongoInput = mongoSanitize({
       path: req.path,
       key: key,
       userAgent: req.get('user-agent'),
-      userId: req.user?.id || 'anonymous'
+      userId: req.user?.id || 'anonymous',
     });
-  }
+  },
 });
 
 /**
@@ -38,9 +38,9 @@ const sanitizeInput = (req, res, next) => {
     /expression\s*\(/gi, // CSS expressions
   ];
 
-  const sanitizeString = (str) => {
+  const sanitizeString = str => {
     if (typeof str !== 'string') return str;
-    
+
     // Check for dangerous patterns
     for (const pattern of dangerousPatterns) {
       if (pattern.test(str)) {
@@ -49,23 +49,23 @@ const sanitizeInput = (req, res, next) => {
           path: req.path,
           pattern: pattern.toString(),
           userAgent: req.get('user-agent'),
-          userId: req.user?.id || 'anonymous'
+          userId: req.user?.id || 'anonymous',
         });
         // Replace dangerous content
         str = str.replace(pattern, '');
       }
     }
-    
+
     return str;
   };
 
-  const sanitizeObject = (obj) => {
+  const sanitizeObject = obj => {
     if (!obj || typeof obj !== 'object') return obj;
-    
+
     if (Array.isArray(obj)) {
       return obj.map(item => sanitizeObject(item));
     }
-    
+
     const sanitized = {};
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'string') {
@@ -119,7 +119,7 @@ const detectSQLInjection = (req, res, next) => {
             field: path,
             pattern: pattern.toString(),
             userAgent: req.get('user-agent'),
-            userId: req.user?.id || 'anonymous'
+            userId: req.user?.id || 'anonymous',
           });
         }
       }
@@ -141,15 +141,11 @@ const detectSQLInjection = (req, res, next) => {
  * Combined sanitization middleware
  * Apply all sanitization in correct order
  */
-const sanitizeAll = [
-  sanitizeMongoInput,
-  sanitizeInput,
-  detectSQLInjection
-];
+const sanitizeAll = [sanitizeMongoInput, sanitizeInput, detectSQLInjection];
 
 module.exports = {
   sanitizeMongoInput,
   sanitizeInput,
   detectSQLInjection,
-  sanitizeAll
+  sanitizeAll,
 };

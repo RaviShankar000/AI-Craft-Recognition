@@ -283,33 +283,28 @@ router.post('/events/mapping', protect, authorize('admin'), (req, res) => {
  * @desc    Remove event role mapping (Admin only)
  * @access  Admin
  */
-router.delete(
-  '/events/mapping/:eventName',
-  protect,
-  authorize('admin'),
-  (req, res) => {
-    try {
-      const { eventName } = req.params;
+router.delete('/events/mapping/:eventName', protect, authorize('admin'), (req, res) => {
+  try {
+    const { eventName } = req.params;
 
-      removeEventRoleMapping(eventName);
+    removeEventRoleMapping(eventName);
 
-      res.json({
-        success: true,
-        message: 'Event role mapping removed successfully',
-        data: {
-          eventName,
-        },
-      });
-    } catch (error) {
-      console.error('[SOCKET API] Error removing event mapping:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to remove event mapping',
-        error: error.message,
-      });
-    }
+    res.json({
+      success: true,
+      message: 'Event role mapping removed successfully',
+      data: {
+        eventName,
+      },
+    });
+  } catch (error) {
+    console.error('[SOCKET API] Error removing event mapping:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove event mapping',
+      error: error.message,
+    });
   }
-);
+});
 
 /**
  * @route   GET /api/socket/debug/stats

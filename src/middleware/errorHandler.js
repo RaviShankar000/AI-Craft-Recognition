@@ -30,13 +30,13 @@ const formatErrorResponse = (err, req) => {
 /**
  * Handle specific error types
  */
-const handleCastError = (err) => ({
+const handleCastError = err => ({
   message: `Invalid ${err.path}: ${err.value}`,
   statusCode: 400,
   isOperational: true,
 });
 
-const handleDuplicateKeyError = (err) => {
+const handleDuplicateKeyError = err => {
   const field = Object.keys(err.keyValue || err.keyPattern || {})[0];
   const value = err.keyValue?.[field];
   return {
@@ -46,8 +46,8 @@ const handleDuplicateKeyError = (err) => {
   };
 };
 
-const handleValidationError = (err) => {
-  const errors = Object.values(err.errors).map((el) => ({
+const handleValidationError = err => {
+  const errors = Object.values(err.errors).map(el => ({
     field: el.path,
     message: el.message,
   }));
@@ -75,7 +75,7 @@ const handleJWTExpiredError = () => ({
  * Global Error Handling Middleware
  */
 const errorHandler = (err, req, res, _next) => {
-  let error = { ...err };
+  const error = { ...err };
   error.message = err.message;
   error.statusCode = err.statusCode || 500;
   error.status = err.status || 'error';
@@ -152,11 +152,10 @@ const notFoundHandler = (req, res, next) => {
 /**
  * Catch async errors wrapper
  */
-const catchAsync = (fn) => {
+const catchAsync = fn => {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
 
 module.exports = { errorHandler, notFoundHandler, catchAsync };
-

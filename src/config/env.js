@@ -15,7 +15,7 @@ const config = {
   // CORS Configuration
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   // Multiple CORS origins support (comma-separated in .env)
-  corsOrigins: process.env.CORS_ORIGINS 
+  corsOrigins: process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
     : ['http://localhost:5173', 'http://localhost:3000'],
 

@@ -55,12 +55,12 @@ function stopAllJobs() {
 function getJobStatus() {
   return jobs.map(({ name, job }) => ({
     name,
-    running: job.running || false
+    running: job.running || false,
   }));
 }
 
 module.exports = {
   initializeJobs,
   stopAllJobs,
-  getJobStatus
+  getJobStatus,
 };

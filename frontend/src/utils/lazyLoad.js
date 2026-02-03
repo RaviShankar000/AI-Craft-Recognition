@@ -253,7 +253,7 @@ export const chunkLoadErrorHandler = (error) => {
  * Register service worker for caching chunks
  */
 export const registerChunkCache = () => {
-  if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+  if ('serviceWorker' in navigator && import.meta.env.PROD) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/service-worker.js')

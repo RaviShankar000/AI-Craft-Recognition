@@ -263,8 +263,11 @@ const approveApplication = async (req, res) => {
     // Emit socket event to notify user
     try {
       const io = getIO();
-      const applicationWithUser = await SellerApplication.findById(application._id).populate('user', '_id name');
-      
+      const applicationWithUser = await SellerApplication.findById(application._id).populate(
+        'user',
+        '_id name'
+      );
+
       if (applicationWithUser && applicationWithUser.user) {
         io.to(applicationWithUser.user._id.toString()).emit('moderation:seller_approved', {
           applicationId: application._id,
@@ -274,7 +277,7 @@ const approveApplication = async (req, res) => {
         });
         console.log(`[MODERATION] Emitted seller_approved to user ${applicationWithUser.user._id}`);
       }
-      
+
       // Notify all admins
       io.to('role:admin').emit('moderation:seller_status_changed', {
         applicationId: application._id,
@@ -342,8 +345,11 @@ const rejectApplication = async (req, res) => {
     // Emit socket event to notify user
     try {
       const io = getIO();
-      const applicationWithUser = await SellerApplication.findById(application._id).populate('user', '_id name');
-      
+      const applicationWithUser = await SellerApplication.findById(application._id).populate(
+        'user',
+        '_id name'
+      );
+
       if (applicationWithUser && applicationWithUser.user) {
         io.to(applicationWithUser.user._id.toString()).emit('moderation:seller_rejected', {
           applicationId: application._id,
@@ -353,7 +359,7 @@ const rejectApplication = async (req, res) => {
         });
         console.log(`[MODERATION] Emitted seller_rejected to user ${applicationWithUser.user._id}`);
       }
-      
+
       // Notify all admins
       io.to('role:admin').emit('moderation:seller_status_changed', {
         applicationId: application._id,

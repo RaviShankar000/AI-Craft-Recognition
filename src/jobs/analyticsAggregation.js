@@ -8,33 +8,13 @@ const Analytics = require('../models/Analytics');
  */
 
 /**
- * Daily Analytics Summary Schema (stored in a separate collection or cache)
- */
-const DailySummary = {
-  date: Date,
-  totalEvents: Number,
-  productViews: Number,
-  craftViews: Number,
-  searches: Number,
-  voiceSearches: Number,
-  cartAdditions: Number,
-  checkouts: Number,
-  purchases: Number,
-  purchaseAmount: Number,
-  uniqueUsers: Number,
-  topProducts: Array,
-  topCrafts: Array,
-  topSearches: Array
-};
-
-/**
  * Aggregate analytics for a specific date
  */
 async function aggregateDailyAnalytics(date = new Date()) {
   try {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
@@ -44,17 +24,17 @@ async function aggregateDailyAnalytics(date = new Date()) {
     const eventStats = await Analytics.aggregate([
       {
         $match: {
-          createdAt: { $gte: startOfDay, $lte: endOfDay }
-        }
+          createdAt: { $gte: startOfDay, $lte: endOfDay },
+        },
       },
       {
         $group: {
           _id: '$eventType',
           count: { $sum: 1 },
           uniqueUsers: { $addToSet: '$user' },
-          totalAmount: { $sum: '$purchaseAmount' }
-        }
-      }
+          totalAmount: { $sum: '$purchaseAmount' },
+        },
+      },
     ]);
 
     // Convert to object for easy access
@@ -63,7 +43,7 @@ async function aggregateDailyAnalytics(date = new Date()) {
       eventMap[stat._id] = {
         count: stat.count,
         uniqueUsers: stat.uniqueUsers.filter(u => u).length,
-        totalAmount: stat.totalAmount || 0
+        totalAmount: stat.totalAmount || 0,
       };
     });
 
@@ -73,14 +53,14 @@ async function aggregateDailyAnalytics(date = new Date()) {
         $match: {
           createdAt: { $gte: startOfDay, $lte: endOfDay },
           eventType: 'product_view',
-          product: { $exists: true, $ne: null }
-        }
+          product: { $exists: true, $ne: null },
+        },
       },
       {
         $group: {
           _id: '$product',
-          views: { $sum: 1 }
-        }
+          views: { $sum: 1 },
+        },
       },
       { $sort: { views: -1 } },
       { $limit: 10 },
@@ -89,16 +69,16 @@ async function aggregateDailyAnalytics(date = new Date()) {
           from: 'products',
           localField: '_id',
           foreignField: '_id',
-          as: 'productInfo'
-        }
+          as: 'productInfo',
+        },
       },
       {
         $project: {
           productId: '$_id',
           views: 1,
-          name: { $arrayElemAt: ['$productInfo.name', 0] }
-        }
-      }
+          name: { $arrayElemAt: ['$productInfo.name', 0] },
+        },
+      },
     ]);
 
     // Top crafts
@@ -107,14 +87,14 @@ async function aggregateDailyAnalytics(date = new Date()) {
         $match: {
           createdAt: { $gte: startOfDay, $lte: endOfDay },
           eventType: 'craft_view',
-          craft: { $exists: true, $ne: null }
-        }
+          craft: { $exists: true, $ne: null },
+        },
       },
       {
         $group: {
           _id: '$craft',
-          views: { $sum: 1 }
-        }
+          views: { $sum: 1 },
+        },
       },
       { $sort: { views: -1 } },
       { $limit: 10 },
@@ -123,16 +103,16 @@ async function aggregateDailyAnalytics(date = new Date()) {
           from: 'crafts',
           localField: '_id',
           foreignField: '_id',
-          as: 'craftInfo'
-        }
+          as: 'craftInfo',
+        },
       },
       {
         $project: {
           craftId: '$_id',
           views: 1,
-          name: { $arrayElemAt: ['$craftInfo.name', 0] }
-        }
-      }
+          name: { $arrayElemAt: ['$craftInfo.name', 0] },
+        },
+      },
     ]);
 
     // Top searches
@@ -141,24 +121,24 @@ async function aggregateDailyAnalytics(date = new Date()) {
         $match: {
           createdAt: { $gte: startOfDay, $lte: endOfDay },
           eventType: { $in: ['search', 'voice_search'] },
-          searchQuery: { $exists: true, $ne: null, $ne: '' }
-        }
+          searchQuery: { $exists: true, $ne: null },
+        },
       },
       {
         $group: {
           _id: '$searchQuery',
           count: { $sum: 1 },
-          avgResults: { $avg: '$searchResults' }
-        }
+          avgResults: { $avg: '$searchResults' },
+        },
       },
       { $sort: { count: -1 } },
-      { $limit: 20 }
+      { $limit: 20 },
     ]);
 
     // Total unique users
     const uniqueUsers = await Analytics.distinct('user', {
       createdAt: { $gte: startOfDay, $lte: endOfDay },
-      user: { $exists: true, $ne: null }
+      user: { $exists: true, $ne: null },
     });
 
     const summary = {
@@ -180,7 +160,7 @@ async function aggregateDailyAnalytics(date = new Date()) {
       topProducts,
       topCrafts,
       topSearches,
-      generatedAt: new Date()
+      generatedAt: new Date(),
     };
 
     logger.info('Daily analytics aggregation completed', {
@@ -188,7 +168,7 @@ async function aggregateDailyAnalytics(date = new Date()) {
       totalEvents: summary.totalEvents,
       uniqueUsers: summary.uniqueUsers,
       purchases: summary.purchases,
-      revenue: summary.purchaseAmount
+      revenue: summary.purchaseAmount,
     });
 
     return summary;
@@ -206,14 +186,14 @@ const dailySummaryCache = new Map();
 async function storeDailySummary(summary) {
   const dateKey = summary.date.toISOString().split('T')[0];
   dailySummaryCache.set(dateKey, summary);
-  
+
   // Optionally store in database for persistence
   // await DailySummaryModel.findOneAndUpdate(
   //   { date: summary.date },
   //   summary,
   //   { upsert: true }
   // );
-  
+
   logger.info(`Stored daily summary for ${dateKey}`);
 }
 
@@ -233,10 +213,10 @@ async function runDailyAggregation() {
     // Aggregate yesterday's data
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     const summary = await aggregateDailyAnalytics(yesterday);
     await storeDailySummary(summary);
-    
+
     return summary;
   } catch (error) {
     logger.error('Daily aggregation job failed:', error);
@@ -249,17 +229,21 @@ async function runDailyAggregation() {
  * Runs daily at 1 AM (after midnight data collection)
  */
 function scheduleAnalyticsAggregation() {
-  const job = cron.schedule('0 1 * * *', async () => {
-    try {
-      logger.info('Analytics aggregation job triggered by schedule');
-      await runDailyAggregation();
-    } catch (error) {
-      logger.error('Scheduled analytics aggregation failed:', error);
+  const job = cron.schedule(
+    '0 1 * * *',
+    async () => {
+      try {
+        logger.info('Analytics aggregation job triggered by schedule');
+        await runDailyAggregation();
+      } catch (error) {
+        logger.error('Scheduled analytics aggregation failed:', error);
+      }
+    },
+    {
+      scheduled: true,
+      timezone: 'UTC',
     }
-  }, {
-    scheduled: true,
-    timezone: "UTC"
-  });
+  );
 
   logger.info('Analytics aggregation job scheduled (daily at 1:00 AM UTC)');
   return job;
@@ -282,13 +266,13 @@ async function getWeeklySummary() {
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 7);
-  
+
   const summaries = [];
   for (let i = 0; i < 7; i++) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
     const dateKey = date.toISOString().split('T')[0];
-    
+
     let summary = dailySummaryCache.get(dateKey);
     if (!summary) {
       // Generate on-demand if not cached
@@ -297,7 +281,7 @@ async function getWeeklySummary() {
     }
     summaries.push(summary);
   }
-  
+
   return summaries;
 }
 
@@ -307,5 +291,5 @@ module.exports = {
   aggregateDailyAnalytics,
   getDailySummary,
   getWeeklySummary,
-  dailySummaryCache
+  dailySummaryCache,
 };

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const { apiLimiter, updateLimiter } = require('../middleware/rateLimiter');
-const { validateUserUpdate, validateObjectId } = require('../middleware/validation');
+const { validateUserUpdate } = require('../middleware/validation');
 
 /**
  * PROTECTED ROUTES - USER ACCESS

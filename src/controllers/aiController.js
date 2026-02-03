@@ -144,7 +144,7 @@ const predictCraft = async (req, res) => {
     });
   } catch (error) {
     console.error('Prediction controller error:', error);
-    
+
     // Emit socket event for unexpected errors
     try {
       const io = getIO();
@@ -161,7 +161,7 @@ const predictCraft = async (req, res) => {
     } catch (socketError) {
       console.error('[SOCKET] Failed to emit recognition_failed:', socketError.message);
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'Server error',

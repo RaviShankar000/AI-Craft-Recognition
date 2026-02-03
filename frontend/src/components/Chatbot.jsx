@@ -4,7 +4,7 @@ import ChatbotService from '../services/chatbotService';
 import './Chatbot.css';
 
 const Chatbot = () => {
-  const { socket, isConnected } = useContext(SocketContext);
+  const { socket } = useContext(SocketContext);
   const [messages, setMessages] = useState([
     {
       id: 1,

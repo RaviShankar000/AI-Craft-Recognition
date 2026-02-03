@@ -167,7 +167,7 @@ const transcribeAudio = async (req, res) => {
     });
   } catch (error) {
     console.error('Transcription controller error:', error);
-    
+
     // Emit socket event for unexpected errors
     try {
       const io = getIO();
@@ -184,7 +184,7 @@ const transcribeAudio = async (req, res) => {
     } catch (socketError) {
       console.error('[SOCKET] Failed to emit voice_recording_failed:', socketError.message);
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'Server error',

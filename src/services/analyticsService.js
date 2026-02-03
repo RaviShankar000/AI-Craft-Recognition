@@ -12,7 +12,7 @@ class AnalyticsService {
   static async getLiveStatsAndBroadcast() {
     try {
       const stats = await Analytics.getLiveStats();
-      
+
       // Broadcast to all admin users
       try {
         const io = getIO();
@@ -21,7 +21,7 @@ class AnalyticsService {
       } catch (socketError) {
         console.error('[ANALYTICS] Failed to broadcast stats:', socketError.message);
       }
-      
+
       return stats;
     } catch (error) {
       console.error('[ANALYTICS] Failed to get live stats:', error.message);

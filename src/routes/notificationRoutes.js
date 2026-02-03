@@ -31,7 +31,7 @@ router.get('/updates', protect, async (req, res) => {
       moderationStatus: { $in: ['approved', 'rejected'] },
     }).select('_id name moderationStatus moderationNote updatedAt');
 
-    products.forEach((product) => {
+    products.forEach(product => {
       const isApproved = product.moderationStatus === 'approved';
       updates.push({
         type: isApproved ? 'product_approved' : 'product_rejected',

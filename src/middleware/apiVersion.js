@@ -13,11 +13,11 @@ const addVersionHeaders = (req, res, next) => {
   // Add version to response headers
   res.set('X-API-Version', API_VERSION);
   res.set('X-API-Version-Number', API_VERSION_NUMBER);
-  
+
   // Add to response locals for access in routes
   res.locals.apiVersion = API_VERSION;
   res.locals.apiVersionNumber = API_VERSION_NUMBER;
-  
+
   next();
 };
 
@@ -29,7 +29,10 @@ const checkDeprecation = (deprecatedVersion, sunsetDate) => {
     if (req.path.startsWith(`/api/${deprecatedVersion}`)) {
       res.set('X-API-Deprecated', 'true');
       res.set('X-API-Sunset-Date', sunsetDate);
-      res.set('Warning', `299 - "This API version is deprecated and will be sunset on ${sunsetDate}"`);
+      res.set(
+        'Warning',
+        `299 - "This API version is deprecated and will be sunset on ${sunsetDate}"`
+      );
     }
     next();
   };
@@ -38,7 +41,7 @@ const checkDeprecation = (deprecatedVersion, sunsetDate) => {
 /**
  * Extract version from request path
  */
-const getVersionFromPath = (path) => {
+const getVersionFromPath = path => {
   const match = path.match(/^\/api\/(v\d+)\//);
   return match ? match[1] : null;
 };
@@ -48,7 +51,7 @@ const getVersionFromPath = (path) => {
  */
 const validateVersion = (req, res, next) => {
   const version = getVersionFromPath(req.path);
-  
+
   if (version && version !== API_VERSION) {
     // Check if it's a sunset version
     return res.status(410).json({
@@ -56,10 +59,10 @@ const validateVersion = (req, res, next) => {
       error: 'API version no longer supported',
       message: `API version ${version} has been sunset. Please use ${API_VERSION}.`,
       currentVersion: API_VERSION,
-      migrationGuide: '/docs/API_VERSIONING.md'
+      migrationGuide: '/docs/API_VERSIONING.md',
     });
   }
-  
+
   next();
 };
 
@@ -69,5 +72,5 @@ module.exports = {
   validateVersion,
   getVersionFromPath,
   API_VERSION,
-  API_VERSION_NUMBER
+  API_VERSION_NUMBER,
 };

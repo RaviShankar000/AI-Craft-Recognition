@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { aria, keyboard } from '../utils/accessibility';
+import { keyboard } from '../utils/accessibility';
 
 /**
  * AccessibleButton - Fully accessible button component
@@ -113,7 +113,6 @@ export const AccessibleInput = ({
 }) => {
   const inputId = id || `input-${name}`;
   const errorId = `${inputId}-error`;
-  const descriptionId = `${inputId}-description`;
 
   return (
     <div className={`form-group ${className}`}>

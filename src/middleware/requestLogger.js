@@ -52,7 +52,7 @@ const requestLogger = (req, res, next) => {
             userId,
           });
         }
-      } catch (e) {
+      } catch {
         // Response body is not JSON
       }
     }
@@ -108,7 +108,7 @@ const detailedRequestLogger = (req, res, next) => {
  */
 const skipLogging = (patterns = []) => {
   return (req, res, next) => {
-    const shouldSkip = patterns.some((pattern) => {
+    const shouldSkip = patterns.some(pattern => {
       if (typeof pattern === 'string') {
         return req.originalUrl.includes(pattern);
       }

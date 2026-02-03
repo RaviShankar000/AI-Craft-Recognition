@@ -38,24 +38,25 @@ const aiClient = axios.create({
 // Configure retry logic
 axiosRetry(aiClient, {
   retries: MAX_RETRIES,
-  retryDelay: (retryCount) => {
+  retryDelay: retryCount => {
     const delay = RETRY_DELAY * Math.pow(2, retryCount - 1); // Exponential backoff
     logger.info(`Retry attempt ${retryCount}/${MAX_RETRIES}, waiting ${delay}ms`);
     return delay;
   },
-  retryCondition: (error) => {
+  retryCondition: error => {
     // Retry on network errors or 5xx server errors
-    const shouldRetry = axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+    const shouldRetry =
+      axiosRetry.isNetworkOrIdempotentRequestError(error) ||
       (error.response && error.response.status >= 500);
-    
+
     if (shouldRetry) {
       logger.warn('AI service request failed, will retry', {
         error: error.message,
         code: error.code,
-        status: error.response?.status
+        status: error.response?.status,
       });
     }
-    
+
     return shouldRetry;
   },
   shouldResetTimeout: true,
@@ -64,9 +65,9 @@ axiosRetry(aiClient, {
       attempt: retryCount,
       maxRetries: MAX_RETRIES,
       error: error.message,
-      url: requestConfig.url
+      url: requestConfig.url,
     });
-  }
+  },
 });
 
 /**
@@ -80,7 +81,7 @@ class AIService {
   static getFallbackResponse(file) {
     logger.warn('Using AI service fallback response', {
       filename: file.originalname,
-      size: file.size
+      size: file.size,
     });
 
     return {
@@ -90,10 +91,11 @@ class AIService {
         predictions: [],
         confidence: 0,
         craftType: 'Unknown',
-        message: 'AI service is temporarily unavailable. Your image has been received and will be processed later.',
-        processingMode: 'fallback'
+        message:
+          'AI service is temporarily unavailable. Your image has been received and will be processed later.',
+        processingMode: 'fallback',
       },
-      warning: 'AI service unavailable - fallback response used'
+      warning: 'AI service unavailable - fallback response used',
     };
   }
 
@@ -173,37 +175,38 @@ class AIService {
         filename: file.originalname,
         duration: `${duration}ms`,
         confidence: response.data.confidence,
-        retries: response.config?.['axios-retry']?.retryCount || 0
+        retries: response.config?.['axios-retry']?.retryCount || 0,
       });
 
       return {
         success: true,
         data: response.data,
         duration,
-        retries: response.config?.['axios-retry']?.retryCount || 0
+        retries: response.config?.['axios-retry']?.retryCount || 0,
       };
     } catch (error) {
       const duration = Date.now() - startTime;
       const retryCount = error.config?.['axios-retry']?.retryCount || 0;
-      
+
       logger.error(`AI prediction failed after ${duration}ms and ${retryCount} retries:`, {
         error: error.message,
         code: error.code,
         filename: file.originalname,
-        retries: retryCount
+        retries: retryCount,
       });
 
       // Check if fallback is enabled
-      if (ENABLE_FALLBACK && (
-        error.code === 'ECONNREFUSED' ||
-        error.code === 'ETIMEDOUT' ||
-        error.code === 'ECONNABORTED' ||
-        error.code === 'ENOTFOUND'
-      )) {
+      if (
+        ENABLE_FALLBACK &&
+        (error.code === 'ECONNREFUSED' ||
+          error.code === 'ETIMEDOUT' ||
+          error.code === 'ECONNABORTED' ||
+          error.code === 'ENOTFOUND')
+      ) {
         logger.warn('AI service unavailable after retries, using fallback', {
           errorCode: error.code,
           timeout: AI_TIMEOUT,
-          retries: retryCount
+          retries: retryCount,
         });
         return this.getFallbackResponse(file);
       }
@@ -215,7 +218,7 @@ class AIService {
           error: error.response.data.error || 'AI service error',
           message: error.response.data.message || error.message,
           status: error.response.status,
-          retries: retryCount
+          retries: retryCount,
         };
       } else if (error.code === 'ECONNREFUSED') {
         return {
@@ -223,7 +226,7 @@ class AIService {
           error: 'AI service unavailable',
           message: `Could not connect to AI service after ${retryCount} retries. The service may be down or unreachable.`,
           code: 'SERVICE_UNAVAILABLE',
-          retries: retryCount
+          retries: retryCount,
         };
       } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
         return {
@@ -231,7 +234,7 @@ class AIService {
           error: 'Request timeout',
           message: `AI service did not respond within ${AI_TIMEOUT / 1000} seconds after ${retryCount} retries. Please try again with a smaller image.`,
           code: 'TIMEOUT',
-          retries: retryCount
+          retries: retryCount,
         };
       } else if (error.code === 'ENOTFOUND') {
         return {
@@ -239,7 +242,7 @@ class AIService {
           error: 'AI service not found',
           message: 'AI service URL is not configured correctly.',
           code: 'NOT_FOUND',
-          retries: retryCount
+          retries: retryCount,
         };
       } else {
         // Other error
@@ -248,7 +251,7 @@ class AIService {
           error: 'Request error',
           message: error.message,
           code: error.code,
-          retries: retryCount
+          retries: retryCount,
         };
       }
     }

@@ -63,7 +63,7 @@ const getAllCrafts = async (req, res) => {
           deviceType: getDeviceType(req.headers['user-agent']),
           browser: getBrowser(req.headers['user-agent']),
         });
-        
+
         // Emit realtime analytics event for search (throttled)
         try {
           const io = getIO();
@@ -74,19 +74,20 @@ const getAllCrafts = async (req, res) => {
             resultsCount: crafts.length,
             timestamp: new Date().toISOString(),
           };
-          
+
           eventThrottler.throttle(
             'analytics:search',
-            (data) => io.to('role:admin').emit('analytics:search', data),
+            data => io.to('role:admin').emit('analytics:search', data),
             eventData
           );
-          
+
           // Broadcast updated analytics stats to admins (throttled)
           eventThrottler.throttle(
             'analytics:live_stats',
-            () => AnalyticsService.broadcastUpdatedStats().catch(err => 
-              console.error('Failed to broadcast updated stats:', err.message)
-            ),
+            () =>
+              AnalyticsService.broadcastUpdatedStats().catch(err =>
+                console.error('Failed to broadcast updated stats:', err.message)
+              ),
             {}
           );
         } catch (socketError) {
@@ -196,7 +197,7 @@ const getCraftById = async (req, res) => {
           browser: getBrowser(req.headers['user-agent']),
           ipAddress: req.ip || req.connection.remoteAddress,
         });
-        
+
         // Emit realtime analytics event for craft view (throttled)
         try {
           const io = getIO();
@@ -207,19 +208,20 @@ const getCraftById = async (req, res) => {
             category: craft.category,
             timestamp: new Date().toISOString(),
           };
-          
+
           eventThrottler.throttle(
             'analytics:craft_view',
-            (data) => io.to('role:admin').emit('analytics:craft_view', data),
+            data => io.to('role:admin').emit('analytics:craft_view', data),
             eventData
           );
-          
+
           // Broadcast updated analytics stats to admins (throttled)
           eventThrottler.throttle(
             'analytics:live_stats',
-            () => AnalyticsService.broadcastUpdatedStats().catch(err => 
-              console.error('Failed to broadcast updated stats:', err.message)
-            ),
+            () =>
+              AnalyticsService.broadcastUpdatedStats().catch(err =>
+                console.error('Failed to broadcast updated stats:', err.message)
+              ),
             {}
           );
         } catch (socketError) {
@@ -449,11 +451,11 @@ const voiceSearchCrafts = async (req, res) => {
     try {
       const io = getIO();
       const batchSize = 5; // Send results in batches of 5
-      
+
       for (let i = 0; i < crafts.length; i += batchSize) {
         const batch = crafts.slice(i, i + batchSize);
         const isLastBatch = i + batchSize >= crafts.length;
-        
+
         io.to(req.user._id.toString()).emit('voice_search_results', {
           userId: req.user._id,
           query: sanitizedQuery,
@@ -465,8 +467,10 @@ const voiceSearchCrafts = async (req, res) => {
           totalCount: total,
           timestamp: new Date().toISOString(),
         });
-        
-        console.log(`[SOCKET] Emitted voice_search_results batch ${Math.floor(i / batchSize) + 1} to user ${req.user._id}`);
+
+        console.log(
+          `[SOCKET] Emitted voice_search_results batch ${Math.floor(i / batchSize) + 1} to user ${req.user._id}`
+        );
       }
 
       // Emit completion event
@@ -495,7 +499,7 @@ const voiceSearchCrafts = async (req, res) => {
         deviceType: getDeviceType(req.headers['user-agent']),
         browser: getBrowser(req.headers['user-agent']),
       });
-      
+
       // Emit realtime analytics event for voice search (throttled)
       try {
         const io = getIO();
@@ -506,19 +510,20 @@ const voiceSearchCrafts = async (req, res) => {
           resultsCount: crafts.length,
           timestamp: new Date().toISOString(),
         };
-        
+
         eventThrottler.throttle(
           'analytics:search',
-          (data) => io.to('role:admin').emit('analytics:search', data),
+          data => io.to('role:admin').emit('analytics:search', data),
           eventData
         );
-        
+
         // Broadcast updated analytics stats to admins (throttled)
         eventThrottler.throttle(
           'analytics:live_stats',
-          () => AnalyticsService.broadcastUpdatedStats().catch(err => 
-            console.error('Failed to broadcast updated stats:', err.message)
-          ),
+          () =>
+            AnalyticsService.broadcastUpdatedStats().catch(err =>
+              console.error('Failed to broadcast updated stats:', err.message)
+            ),
           {}
         );
       } catch (socketError) {
@@ -539,7 +544,7 @@ const voiceSearchCrafts = async (req, res) => {
     });
   } catch (error) {
     console.error('Voice search error:', error);
-    
+
     // Emit search failed event for exceptions
     try {
       const io = getIO();
@@ -553,7 +558,7 @@ const voiceSearchCrafts = async (req, res) => {
     } catch (socketError) {
       console.error('[SOCKET] Failed to emit voice_search_failed:', socketError.message);
     }
-    
+
     res.status(500).json({
       success: false,
       error: error.message,

@@ -30,14 +30,14 @@ const SENSITIVE_FIELDS = [
 /**
  * Mask a single value
  */
-const maskValue = (value) => {
+const maskValue = value => {
   if (!value) return value;
-  
+
   const strValue = String(value);
   if (strValue.length <= 4) {
     return '***';
   }
-  
+
   // Show first 2 and last 2 characters
   return `${strValue.slice(0, 2)}${'*'.repeat(strValue.length - 4)}${strValue.slice(-2)}`;
 };
@@ -48,22 +48,20 @@ const maskValue = (value) => {
 const maskSensitiveData = (obj, depth = 0, maxDepth = 10) => {
   if (depth > maxDepth) return obj;
   if (!obj || typeof obj !== 'object') return obj;
-  
+
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map((item) => maskSensitiveData(item, depth + 1, maxDepth));
+    return obj.map(item => maskSensitiveData(item, depth + 1, maxDepth));
   }
-  
+
   // Handle objects
   const masked = {};
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
-    
+
     // Check if field should be masked
-    const shouldMask = SENSITIVE_FIELDS.some((field) => 
-      lowerKey.includes(field.toLowerCase())
-    );
-    
+    const shouldMask = SENSITIVE_FIELDS.some(field => lowerKey.includes(field.toLowerCase()));
+
     if (shouldMask) {
       masked[key] = maskValue(value);
     } else if (value && typeof value === 'object') {
@@ -72,7 +70,7 @@ const maskSensitiveData = (obj, depth = 0, maxDepth = 10) => {
       masked[key] = value;
     }
   }
-  
+
   return masked;
 };
 
@@ -82,22 +80,20 @@ const maskSensitiveData = (obj, depth = 0, maxDepth = 10) => {
 const removeSensitiveFields = (obj, depth = 0, maxDepth = 10) => {
   if (depth > maxDepth) return obj;
   if (!obj || typeof obj !== 'object') return obj;
-  
+
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map((item) => removeSensitiveFields(item, depth + 1, maxDepth));
+    return obj.map(item => removeSensitiveFields(item, depth + 1, maxDepth));
   }
-  
+
   // Handle objects
   const cleaned = {};
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
-    
+
     // Check if field should be removed
-    const shouldRemove = SENSITIVE_FIELDS.some((field) => 
-      lowerKey.includes(field.toLowerCase())
-    );
-    
+    const shouldRemove = SENSITIVE_FIELDS.some(field => lowerKey.includes(field.toLowerCase()));
+
     if (!shouldRemove) {
       if (value && typeof value === 'object') {
         cleaned[key] = removeSensitiveFields(value, depth + 1, maxDepth);
@@ -106,14 +102,14 @@ const removeSensitiveFields = (obj, depth = 0, maxDepth = 10) => {
       }
     }
   }
-  
+
   return cleaned;
 };
 
 /**
  * Mask sensitive data in request body
  */
-const maskRequestBody = (body) => {
+const maskRequestBody = body => {
   if (!body || typeof body !== 'object') return body;
   return maskSensitiveData(body);
 };
@@ -121,7 +117,7 @@ const maskRequestBody = (body) => {
 /**
  * Mask sensitive data in response
  */
-const maskResponse = (data) => {
+const maskResponse = data => {
   if (!data || typeof data !== 'object') return data;
   return maskSensitiveData(data);
 };
@@ -131,48 +127,49 @@ const maskResponse = (data) => {
  */
 const maskResponseMiddleware = (req, res, next) => {
   const originalJson = res.json;
-  
+
   res.json = function (data) {
     // Don't mask if explicitly disabled
     if (res.locals.skipMasking) {
       return originalJson.call(this, data);
     }
-    
+
     // Mask sensitive data
     const maskedData = maskResponse(data);
     return originalJson.call(this, maskedData);
   };
-  
+
   next();
 };
 
 /**
  * Mask sensitive fields in error messages
  */
-const maskErrorMessage = (message) => {
+const maskErrorMessage = message => {
   if (!message) return message;
-  
+
   let masked = message;
-  
+
   // Mask common patterns
   // JWT tokens
   masked = masked.replace(/eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*/g, '[TOKEN]');
-  
+
   // API keys (format: alphanumeric, 20+ chars)
   masked = masked.replace(/\b[A-Za-z0-9]{20,}\b/g, '[API_KEY]');
-  
+
   // Email in certain contexts
-  masked = masked.replace(/([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, 
+  masked = masked.replace(
+    /([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
     (match, user, domain) => `${user.slice(0, 2)}***@${domain}`
   );
-  
+
   return masked;
 };
 
 /**
  * Add custom sensitive fields
  */
-const addSensitiveField = (field) => {
+const addSensitiveField = field => {
   if (!SENSITIVE_FIELDS.includes(field)) {
     SENSITIVE_FIELDS.push(field);
   }

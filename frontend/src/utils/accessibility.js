@@ -3,7 +3,7 @@
  * ARIA labels, keyboard navigation, and screen reader support
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * useFocusTrap - Trap focus within a modal or dialog
@@ -91,7 +91,7 @@ export const useEscapeKey = (handler) => {
  * @param {Function} onSelect - Called when Enter is pressed
  */
 export const useArrowNavigation = (items, onSelect) => {
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
     const handleKeyPress = (e) => {

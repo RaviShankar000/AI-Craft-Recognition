@@ -27,7 +27,7 @@ const authLimiter = rateLimit({
       ip: req.ip,
       path: req.path,
       email: req.body?.email || 'unknown',
-      userAgent: req.get('user-agent')
+      userAgent: req.get('user-agent'),
     });
     res.status(429).json({
       success: false,
@@ -58,7 +58,7 @@ const apiLimiter = rateLimit({
     logger.logSecurity('api_rate_limit_exceeded', {
       ip: req.ip,
       path: req.path,
-      userAgent: req.get('user-agent')
+      userAgent: req.get('user-agent'),
     });
     res.status(429).json({
       success: false,
@@ -89,7 +89,7 @@ const aiLimiter = rateLimit({
       ip: req.ip,
       path: req.path,
       userId: req.user?.id || 'anonymous',
-      userAgent: req.get('user-agent')
+      userAgent: req.get('user-agent'),
     });
     res.status(429).json({
       success: false,
@@ -120,7 +120,7 @@ const updateLimiter = rateLimit({
       ip: req.ip,
       path: req.path,
       userId: req.user?.id || 'anonymous',
-      userAgent: req.get('user-agent')
+      userAgent: req.get('user-agent'),
     });
     res.status(429).json({
       success: false,
@@ -151,7 +151,7 @@ const chatLimiter = rateLimit({
       ip: req.ip,
       path: req.path,
       userId: req.user?.id || 'anonymous',
-      userAgent: req.get('user-agent')
+      userAgent: req.get('user-agent'),
     });
     res.status(429).json({
       success: false,
@@ -180,7 +180,7 @@ const registerLimiter = rateLimit({
     logger.logSecurity('registration_rate_limit_exceeded', {
       ip: req.ip,
       email: req.body?.email || 'unknown',
-      userAgent: req.get('user-agent')
+      userAgent: req.get('user-agent'),
     });
     res.status(429).json({
       success: false,
@@ -209,7 +209,7 @@ const passwordResetLimiter = rateLimit({
     logger.logSecurity('password_reset_rate_limit_exceeded', {
       ip: req.ip,
       email: req.body?.email || 'unknown',
-      userAgent: req.get('user-agent')
+      userAgent: req.get('user-agent'),
     });
     res.status(429).json({
       success: false,
@@ -239,7 +239,7 @@ const uploadLimiter = rateLimit({
       ip: req.ip,
       path: req.path,
       userId: req.user?.id || 'anonymous',
-      userAgent: req.get('user-agent')
+      userAgent: req.get('user-agent'),
     });
     res.status(429).json({
       success: false,

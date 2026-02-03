@@ -49,12 +49,11 @@ class NotificationService {
   static notifyProductModeration(userId, productData, status, note) {
     const notification = {
       type: `product_${status}`,
-      title: status === 'approved' 
-        ? '✅ Product Approved' 
-        : '❌ Product Rejected',
-      message: status === 'approved'
-        ? `Your product "${productData.name}" has been approved and is now live!`
-        : `Your product "${productData.name}" was rejected. ${note}`,
+      title: status === 'approved' ? '✅ Product Approved' : '❌ Product Rejected',
+      message:
+        status === 'approved'
+          ? `Your product "${productData.name}" has been approved and is now live!`
+          : `Your product "${productData.name}" was rejected. ${note}`,
       data: {
         productId: productData._id,
         productName: productData.name,
@@ -76,12 +75,12 @@ class NotificationService {
   static notifySellerApplication(userId, status, note) {
     const notification = {
       type: `seller_application_${status}`,
-      title: status === 'approved' 
-        ? '🎉 Seller Application Approved' 
-        : '❌ Seller Application Rejected',
-      message: status === 'approved'
-        ? 'Congratulations! Your seller application has been approved. You can now start selling products.'
-        : `Your seller application was rejected. ${note}`,
+      title:
+        status === 'approved' ? '🎉 Seller Application Approved' : '❌ Seller Application Rejected',
+      message:
+        status === 'approved'
+          ? 'Congratulations! Your seller application has been approved. You can now start selling products.'
+          : `Your seller application was rejected. ${note}`,
       data: {
         status,
         note: note || null,
@@ -157,7 +156,7 @@ class NotificationService {
         priority,
         timestamp: new Date().toISOString(),
       };
-      
+
       io.emit('notification', notification);
       console.log('[NOTIFICATION] Broadcasted system notification');
     } catch (error) {

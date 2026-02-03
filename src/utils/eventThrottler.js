@@ -7,19 +7,19 @@ class EventThrottler {
   constructor() {
     // Store last emission time for each event type
     this.lastEmission = new Map();
-    
+
     // Throttle intervals (in milliseconds)
     this.throttleIntervals = {
-      'analytics:live_stats': 5000,        // 5 seconds
-      'analytics:search': 2000,            // 2 seconds
-      'analytics:craft_view': 2000,        // 2 seconds
-      'analytics:product_view': 2000,      // 2 seconds
-      default: 1000,                       // 1 second default
+      'analytics:live_stats': 5000, // 5 seconds
+      'analytics:search': 2000, // 2 seconds
+      'analytics:craft_view': 2000, // 2 seconds
+      'analytics:product_view': 2000, // 2 seconds
+      default: 1000, // 1 second default
     };
-    
+
     // Pending events that need to be emitted after throttle period
     this.pendingEvents = new Map();
-    
+
     // Timers for delayed emissions
     this.timers = new Map();
   }
@@ -33,8 +33,8 @@ class EventThrottler {
     const now = Date.now();
     const lastTime = this.lastEmission.get(eventType) || 0;
     const interval = this.throttleIntervals[eventType] || this.throttleIntervals.default;
-    
-    return (now - lastTime) >= interval;
+
+    return now - lastTime >= interval;
   }
 
   /**
@@ -57,10 +57,10 @@ class EventThrottler {
       // Emit immediately
       emitFn(data);
       this.recordEmission(eventType);
-      
+
       // Clear any pending event of this type
       this.clearPending(eventType);
-      
+
       console.log(`[THROTTLER] ✅ Emitted ${eventType} immediately`);
       return true;
     } else {
@@ -80,18 +80,18 @@ class EventThrottler {
   queueEvent(eventType, emitFn, data) {
     // Update pending event with latest data
     this.pendingEvents.set(eventType, { emitFn, data });
-    
+
     // Clear existing timer if any
     if (this.timers.has(eventType)) {
       clearTimeout(this.timers.get(eventType));
     }
-    
+
     // Calculate time until next allowed emission
     const now = Date.now();
     const lastTime = this.lastEmission.get(eventType) || 0;
     const interval = this.throttleIntervals[eventType] || this.throttleIntervals.default;
     const timeUntilEmit = Math.max(0, interval - (now - lastTime));
-    
+
     // Set timer to emit after throttle period
     const timer = setTimeout(() => {
       const pending = this.pendingEvents.get(eventType);
@@ -102,7 +102,7 @@ class EventThrottler {
       }
       this.timers.delete(eventType);
     }, timeUntilEmit);
-    
+
     this.timers.set(eventType, timer);
   }
 
@@ -139,7 +139,7 @@ class EventThrottler {
     for (const timer of this.timers.values()) {
       clearTimeout(timer);
     }
-    
+
     this.lastEmission.clear();
     this.pendingEvents.clear();
     this.timers.clear();
