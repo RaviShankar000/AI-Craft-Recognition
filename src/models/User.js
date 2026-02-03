@@ -136,6 +136,12 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
+// Indexes for performance
+userSchema.index({ email: 1 }); // Email lookups (already unique)
+userSchema.index({ role: 1, isActive: 1 }); // Filter by role and status
+userSchema.index({ 'sellerApplication.status': 1 }); // Seller applications
+userSchema.index({ createdAt: -1 }); // Recent users
+
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

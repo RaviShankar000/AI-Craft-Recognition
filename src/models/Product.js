@@ -185,6 +185,17 @@ productSchema.statics.findPendingModeration = function () {
   return this.find({ moderationStatus: 'pending' }).sort({ createdAt: -1 });
 };
 
+// Indexes for performance optimization
+productSchema.index({ name: 1 }); // Frequently queried by name
+productSchema.index({ name: 'text', description: 'text' }); // Full-text search
+productSchema.index({ price: 1 }); // Price range queries
+productSchema.index({ category: 1, isAvailable: 1 }); // Category filtering
+productSchema.index({ user: 1, moderationStatus: 1 }); // Seller's products by status
+productSchema.index({ craft: 1, isAvailable: 1 }); // Products by craft
+productSchema.index({ createdAt: -1 }); // Recent products
+productSchema.index({ isAvailable: 1, stock: 1 }); // Available products
+productSchema.index({ moderationStatus: 1, createdAt: -1 }); // Moderation queue
+
 const Product = mongoose.model('Product', productSchema);
 
 module.exports = Product;

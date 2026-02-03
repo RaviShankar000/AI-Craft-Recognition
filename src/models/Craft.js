@@ -84,9 +84,14 @@ const craftSchema = new mongoose.Schema(
 );
 
 // Indexes for better query performance
-craftSchema.index({ user: 1, state: 1 });
-craftSchema.index({ state: 1, createdAt: -1 });
-craftSchema.index({ name: 'text', description: 'text' });
+craftSchema.index({ name: 1 }); // Query by name
+craftSchema.index({ user: 1, state: 1 }); // User's crafts by state
+craftSchema.index({ state: 1, createdAt: -1 }); // Recent crafts by state
+craftSchema.index({ name: 'text', description: 'text' }); // Full-text search
+craftSchema.index({ category: 1, isPublic: 1 }); // Category filtering
+craftSchema.index({ viewCount: -1 }); // Popular crafts
+craftSchema.index({ 'aiAnalysis.recognized': 1 }); // AI recognized crafts
+craftSchema.index({ tags: 1 }); // Search by tags
 
 // Virtual for image count
 craftSchema.virtual('imageCount').get(function () {

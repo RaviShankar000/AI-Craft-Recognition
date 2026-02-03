@@ -419,6 +419,17 @@ analyticsSchema.statics.getLiveStats = async function () {
   };
 };
 
+// Indexes for performance optimization
+analyticsSchema.index({ eventType: 1, createdAt: -1 }); // Events by type and date
+analyticsSchema.index({ user: 1, eventType: 1 }); // User events by type
+analyticsSchema.index({ sessionId: 1, createdAt: -1 }); // Session tracking
+analyticsSchema.index({ product: 1, eventType: 1 }); // Product analytics
+analyticsSchema.index({ craft: 1, eventType: 1 }); // Craft analytics
+analyticsSchema.index({ order: 1 }); // Order analytics
+analyticsSchema.index({ createdAt: -1 }); // Recent events
+analyticsSchema.index({ searchQuery: 1, eventType: 1 }); // Search analytics
+analyticsSchema.index({ eventType: 1, createdAt: 1 }, { expireAfterSeconds: 7776000 }); // TTL index: 90 days
+
 const Analytics = mongoose.model('Analytics', analyticsSchema);
 
 module.exports = Analytics;

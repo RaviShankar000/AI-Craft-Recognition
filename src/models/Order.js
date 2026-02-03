@@ -320,6 +320,14 @@ orderSchema.statics.getStatistics = async function (userId) {
   return stats;
 };
 
+// Indexes for performance
+orderSchema.index({ orderNumber: 1 }); // Unique order lookup
+orderSchema.index({ user: 1, status: 1 }); // User orders by status
+orderSchema.index({ status: 1, createdAt: -1 }); // Orders by status and date
+orderSchema.index({ createdAt: -1 }); // Recent orders
+orderSchema.index({ 'payment.status': 1 }); // Payment status queries
+orderSchema.index({ user: 1, createdAt: -1 }); // User's recent orders
+
 const Order = mongoose.model('Order', orderSchema);
 
 module.exports = Order;

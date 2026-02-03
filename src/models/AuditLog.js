@@ -207,4 +207,12 @@ auditLogSchema.statics.getStatistics = async function (filters = {}) {
   };
 };
 
+// Indexes for audit log queries
+auditLogSchema.index({ user: 1, createdAt: -1 }); // User activity
+auditLogSchema.index({ action: 1, createdAt: -1 }); // Actions by date
+auditLogSchema.index({ category: 1, createdAt: -1 }); // Category filtering
+auditLogSchema.index({ userRole: 1, action: 1 }); // Role-based actions
+auditLogSchema.index({ createdAt: -1 }); // Recent logs
+auditLogSchema.index({ severity: 1, createdAt: -1 }); // Severity filtering
+
 module.exports = mongoose.model('AuditLog', auditLogSchema);
