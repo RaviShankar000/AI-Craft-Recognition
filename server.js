@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const connectDB = require('./src/config/database');
 const config = require('./src/config/env');
+const { corsOptions, handleCORSError, logCORSRequest } = require('./src/config/cors');
 const { initializeSocket, setIO } = require('./src/config/socket');
 const { initGracefulShutdown } = require('./src/utils/gracefulShutdown');
 
@@ -41,13 +42,11 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin resources
 }));
 
-// CORS Middleware
-app.use(
-  cors({
-    origin: config.corsOrigin,
-    credentials: true,
-  })
-);
+// CORS Middleware - Strict environment-based policy
+app.use(logCORSRequest); // Log CORS requests
+app.use(cors(corsOptions)); // Apply CORS policy
+
+// Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -132,7 +131,8 @@ const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler
 // 404 handler (must be after all routes)
 app.use(notFoundHandler);
 
-// Global error handler (must be last)
+// Global error handlers (must be last)
+app.use(handleCORSError); // CORS error handler
 app.use(handleMulterError);
 app.use(errorHandler);
 
