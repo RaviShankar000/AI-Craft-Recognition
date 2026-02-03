@@ -51,6 +51,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Input Sanitization Middleware - Must come after body parsing
+const { sanitizeAll } = require('./src/middleware/sanitize');
+app.use(sanitizeAll);
+
 // Request logging middleware
 const { requestLogger, skipLogging } = require('./src/middleware/requestLogger');
 const { maskResponseMiddleware } = require('./src/utils/maskSensitiveData');
