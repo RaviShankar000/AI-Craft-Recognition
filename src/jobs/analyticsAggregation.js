@@ -263,7 +263,6 @@ async function runAggregationNow(date) {
  * Get weekly summary
  */
 async function getWeeklySummary() {
-  const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 7);
 

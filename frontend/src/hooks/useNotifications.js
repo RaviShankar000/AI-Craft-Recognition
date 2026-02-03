@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useContext } from 'react';
-import { SocketContext } from '../context/SocketContext';
+import { SocketContext } from '../context/socketContext';
 import { useToast } from '../components/ToastProvider';
 import { usePollingFallback } from './usePollingFallback';
 
@@ -11,6 +11,35 @@ export const useNotifications = () => {
   const toast = useToast();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Play notification sound
+  const playNotificationSound = useCallback(() => {
+    try {
+      const audio = new Audio('/notification-sound.mp3');
+      audio.volume = 0.3;
+      audio.play().catch(() => {
+        // Sound playback failed (user interaction required)
+      });
+    } catch {
+      // Audio not available
+    }
+  }, []);
+
+  // Show browser notification
+  const showBrowserNotification = useCallback((notification) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(notification.title || 'New Notification', {
+          body: notification.message,
+          icon: '/logo.png',
+          badge: '/logo.png',
+          tag: notification.type,
+        });
+      } catch {
+        // Browser notification failed
+      }
+    }
+  }, []);
 
   // Add a new notification
   const addNotification = useCallback((notification) => {
@@ -36,7 +65,7 @@ export const useNotifications = () => {
 
     // Show browser notification if permitted
     showBrowserNotification(notification);
-  }, [toast]);
+  }, [toast, playNotificationSound, showBrowserNotification]);
 
   // Mark notification as read
   const markAsRead = useCallback((notificationId) => {
@@ -71,42 +100,13 @@ export const useNotifications = () => {
     setUnreadCount(0);
   }, []);
 
-  // Play notification sound
-  const playNotificationSound = () => {
-    try {
-      const audio = new Audio('/notification-sound.mp3');
-      audio.volume = 0.3;
-      audio.play().catch(() => {
-        // Sound playback failed (user interaction required)
-      });
-    } catch (error) {
-      // Audio not available
-    }
-  };
-
-  // Show browser notification
-  const showBrowserNotification = (notification) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(notification.title || 'New Notification', {
-          body: notification.message,
-          icon: '/logo.png',
-          badge: '/logo.png',
-          tag: notification.type,
-        });
-      } catch (error) {
-        // Browser notification failed
-      }
-    }
-  };
-
   // Request notification permission
   const requestNotificationPermission = useCallback(async () => {
     if ('Notification' in window && Notification.permission === 'default') {
       try {
         const permission = await Notification.requestPermission();
         return permission === 'granted';
-      } catch (error) {
+      } catch {
         return false;
       }
     }

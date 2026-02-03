@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../hooks/useNotifications';
 import './NotificationCenter.css';
 
 const NotificationCenter = () => {
+  const navigate = useNavigate();
   const {
     notifications,
     unreadCount,
@@ -26,10 +28,10 @@ const NotificationCenter = () => {
     // Handle navigation based on notification type
     if (notification.type === 'product_approved' || notification.type === 'product_rejected') {
       // Navigate to product details
-      window.location.href = `/products/${notification.data.productId}`;
+      navigate(`/products/${notification.data.productId}`);
     } else if (notification.type === 'seller_approved') {
       // Navigate to seller dashboard
-      window.location.href = '/seller/dashboard';
+      navigate('/seller/dashboard');
     }
   };
 

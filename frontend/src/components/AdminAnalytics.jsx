@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { SocketContext } from '../context/SocketContext';
+import { SocketContext } from '../context/socketContext';
 import './AdminAnalytics.css';
 
 const AdminAnalytics = () => {

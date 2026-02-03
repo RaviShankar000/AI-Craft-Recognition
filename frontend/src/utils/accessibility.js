@@ -38,11 +38,12 @@ export const useFocusTrap = (isActive) => {
       }
     };
 
-    containerRef.current.addEventListener('keydown', handleTab);
+    const container = containerRef.current;
+    container.addEventListener('keydown', handleTab);
     firstElement?.focus();
 
     return () => {
-      containerRef.current?.removeEventListener('keydown', handleTab);
+      container?.removeEventListener('keydown', handleTab);
     };
   }, [isActive]);
 

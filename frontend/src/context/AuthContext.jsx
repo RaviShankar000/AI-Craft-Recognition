@@ -14,24 +14,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Initialize auth state from localStorage
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-
-    if (storedToken && storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('[AUTH] Failed to parse stored user:', error);
-        logout();
-      }
-    }
-    setLoading(false);
-  }, []);
+  // Logout function
+  const logout = useCallback(() => {
+    setUser(null);
+    setToken(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    console.log('[AUTH] User logged out');
+    navigate('/login');
+  }, [navigate]);
 
   // Login function
   const login = useCallback((userData, authToken) => {
@@ -43,16 +35,25 @@ export const AuthProvider = ({ children }) => {
     console.log('[AUTH] User logged in:', userData.email, 'Role:', userData.role);
   }, []);
 
-  // Logout function
-  const logout = useCallback(() => {
-    setUser(null);
-    setToken(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    console.log('[AUTH] User logged out');
-    navigate('/login');
-  }, [navigate]);
+  // Initialize auth state from localStorage
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    if (storedToken && storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setToken(storedToken);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+        console.log('[AUTH] Restored authentication from localStorage');
+      } catch (error) {
+        console.error('[AUTH] Failed to parse stored user:', error);
+        logout();
+      }
+    }
+    setLoading(false);
+  }, [logout]);
 
   // Update user data (e.g., after profile update)
   const updateUser = useCallback((updatedData) => {
