@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const connectDB = require('./src/config/database');
 const config = require('./src/config/env');
+const logger = require('./src/config/logger');
 const { corsOptions, handleCORSError, logCORSRequest } = require('./src/config/cors');
 const { initializeSocket, setIO } = require('./src/config/socket');
 const { initGracefulShutdown } = require('./src/utils/gracefulShutdown');
@@ -54,6 +55,11 @@ app.use(express.urlencoded({ extended: true }));
 const { sanitizeAll } = require('./src/middleware/sanitize');
 app.use(sanitizeAll);
 
+// API Version Middleware
+const { addVersionHeaders, validateVersion } = require('./src/middleware/apiVersion');
+app.use(addVersionHeaders);
+app.use(validateVersion);
+
 // Request logging middleware
 const { requestLogger, skipLogging } = require('./src/middleware/requestLogger');
 const { maskResponseMiddleware } = require('./src/utils/maskSensitiveData');
@@ -66,6 +72,9 @@ app.use(skipLogging(['/health', '/uploads', '/socket.io']));
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
+
+// API Versioning
+const express_v1 = express.Router();
 
 // Routes
 const authRoutes = require('./src/routes/authRoutes');
@@ -85,26 +94,54 @@ const auditLogRoutes = require('./src/routes/auditLogRoutes');
 const socketRoutes = require('./src/routes/socket');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/crafts', craftRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/checkout', checkoutRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/speech', speechRoutes);
-app.use('/api/chatbot', chatbotRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/seller', sellerRoutes);
-app.use('/api/audit-logs', auditLogRoutes);
-app.use('/api/socket', socketRoutes);
-app.use('/api/notifications', notificationRoutes);
+// Mount v1 routes
+express_v1.use('/auth', authRoutes);
+express_v1.use('/users', userRoutes);
+express_v1.use('/crafts', craftRoutes);
+express_v1.use('/orders', orderRoutes);
+express_v1.use('/products', productRoutes);
+express_v1.use('/cart', cartRoutes);
+express_v1.use('/checkout', checkoutRoutes);
+express_v1.use('/upload', uploadRoutes);
+express_v1.use('/ai', aiRoutes);
+express_v1.use('/speech', speechRoutes);
+express_v1.use('/chatbot', chatbotRoutes);
+express_v1.use('/admin', adminRoutes);
+express_v1.use('/seller', sellerRoutes);
+express_v1.use('/audit-logs', auditLogRoutes);
+express_v1.use('/socket', socketRoutes);
+express_v1.use('/notifications', notificationRoutes);
+
+// Mount versioned API
+app.use('/api/v1', express_v1);
+
+// Backward compatibility - redirect /api/* to /api/v1/*
+app.use('/api', (req, res, next) => {
+  // Skip if already versioned
+  if (req.path.startsWith('/v1/')) {
+    return next();
+  }
+  // Redirect to v1
+  const newPath = `/api/v1${req.path}`;
+  logger.info('API redirect', { from: req.path, to: newPath });
+  res.redirect(307, newPath); // 307 preserves method and body
+});
 
 // Basic route
 app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to AI Craft Recognition API' });
+  res.json({ 
+    name: 'AI Craft Recognition API',
+    version: '1.0.0',
+    description: 'RESTful API for AI-powered craft recognition and e-commerce',
+    endpoints: {
+      v1: '/api/v1',
+      health: '/health',
+      documentation: '/api/v1/docs'
+    },
+    currentVersion: 'v1',
+    deprecatedVersions: [],
+    message: 'Use /api/v1/* for all API requests'
+  });
 });
 
 // Health check route
