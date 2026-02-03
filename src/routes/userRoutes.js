@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const { apiLimiter, updateLimiter } = require('../middleware/rateLimiter');
+const { validateUserUpdate, validateObjectId } = require('../middleware/validation');
 
 /**
  * PROTECTED ROUTES - USER ACCESS
@@ -44,7 +45,7 @@ router.get('/me', protect, apiLimiter, async (req, res) => {
  * @access Private
  * @ratelimit 20 requests per 15 minutes
  */
-router.put('/me', protect, updateLimiter, async (req, res) => {
+router.put('/me', protect, validateUserUpdate, updateLimiter, async (req, res) => {
   try {
     const { name, email, role, isActive } = req.body;
 

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize, optionalAuth } = require('../middleware/auth');
 const { apiLimiter, updateLimiter } = require('../middleware/rateLimiter');
+const { validateProduct, validateObjectId } = require('../middleware/validation');
 const {
   getAllProducts,
   getProductById,
@@ -29,7 +30,7 @@ router.get('/craft/:craftId', apiLimiter, getProductsByCraft);
 router.get('/', optionalAuth, apiLimiter, getAllProducts);
 
 // Get product by ID - Rate limited: 100 requests per 15 minutes
-router.get('/:id', apiLimiter, getProductById);
+router.get('/:id', validateObjectId, apiLimiter, getProductById);
 
 /**
  * PROTECTED ROUTES - SELLER ONLY
@@ -38,13 +39,13 @@ router.get('/:id', apiLimiter, getProductById);
  */
 
 // Create new product - Rate limited: 20 requests per 15 minutes
-router.post('/', protect, authorize('seller', 'admin'), updateLimiter, createProduct);
+router.post('/', protect, authorize('seller', 'admin'), validateProduct, updateLimiter, createProduct);
 
 // Update product - Rate limited: 20 requests per 15 minutes
-router.put('/:id', protect, authorize('seller', 'admin'), updateLimiter, updateProduct);
+router.put('/:id', protect, authorize('seller', 'admin'), validateObjectId, validateProduct, updateLimiter, updateProduct);
 
 // Delete product - Rate limited: 20 requests per 15 minutes
-router.delete('/:id', protect, authorize('seller', 'admin'), updateLimiter, deleteProduct);
+router.delete('/:id', protect, authorize('seller', 'admin'), validateObjectId, updateLimiter, deleteProduct);
 
 // Stock management route - Rate limited: 20 requests per 15 minutes
 router.patch(
