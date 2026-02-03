@@ -31,6 +31,14 @@ Thumbs.db
 dist/
 build/
 coverage/
+frontend/coverage/
+
+# Test output
+test-results/
+junit.xml
+*.lcov
+*.lcov.info
+.nyc_output/
 
 # Uploads and temp files
 uploads/
