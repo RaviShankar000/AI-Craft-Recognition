@@ -199,6 +199,33 @@
   animation: dropdownSlide 0.2s ease-out;
 }
 
+.dropdown-header {
+  padding: 8px 14px 4px;
+}
+
+.dropdown-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdown-user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.dropdown-user-role {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-500);
+  text-transform: capitalize;
+  padding: 2px 8px;
+  background: var(--gray-100);
+  border-radius: 12px;
+  width: fit-content;
+}
+
 @keyframes dropdownSlide {
   from {
     opacity: 0;

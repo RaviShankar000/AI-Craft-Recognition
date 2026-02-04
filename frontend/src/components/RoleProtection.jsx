@@ -25,7 +25,7 @@ export const ProtectedRoute = ({ children }) => {
  * Redirects based on user role
  */
 export const RoleProtectedRoute = ({ children, roles, fallbackPath = '/dashboard' }) => {
-  const { isAuthenticated, hasAnyRole, loading } = useAuth();
+  const { isAuthenticated, hasAnyRole, user, loading } = useAuth();
 
   if (loading) {
     return <PageLoader />;
@@ -38,7 +38,7 @@ export const RoleProtectedRoute = ({ children, roles, fallbackPath = '/dashboard
   const allowedRoles = Array.isArray(roles) ? roles : [roles];
   
   if (!hasAnyRole(...allowedRoles)) {
-    console.warn('[ROUTE] Access denied. Required roles:', allowedRoles);
+    console.warn('[ROUTE] Access denied. Required roles:', allowedRoles, 'User role:', user?.role);
     return <Navigate to={fallbackPath} replace />;
   }
 

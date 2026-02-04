@@ -4,6 +4,11 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  esbuild: {
+    loader: 'jsx',
+    include: /src\/.*\.jsx?$/,
+    exclude: [],
+  },
   build: {
     // Enable code splitting
     rollupOptions: {
@@ -47,8 +52,12 @@ export default defineConfig({
     // Source map configuration
     sourcemap: false, // Disable in production for smaller bundle
   },
-  // Optimization options
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
+    esbuildOptions: {
+      loader: {
+        '.js': 'jsx',
+      },
+    },
   },
 })

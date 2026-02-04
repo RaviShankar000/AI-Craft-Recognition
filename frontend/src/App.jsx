@@ -10,6 +10,8 @@ import { PageLoader } from './components/SkeletonLoaders';
 import { lazyWithRetry } from './utils/lazyLoad';
 import DashboardLayout from './components/DashboardLayout';
 import VoiceSearch from './components/VoiceSearch';
+import Login from './components/Login';
+import Register from './components/Register';
 
 // Lazy load heavy components
 const CraftPredictor = lazy(() => lazyWithRetry(() => import('./components/CraftPredictor')));
@@ -20,6 +22,18 @@ const Cart = lazy(() => lazyWithRetry(() => import('./components/Cart')));
 const OrderHistory = lazy(() => lazyWithRetry(() => import('./components/OrderHistory')));
 const AdminAnalytics = lazy(() => lazyWithRetry(() => import('./components/AdminAnalytics')));
 
+// Admin components
+const AdminCrafts = lazy(() => lazyWithRetry(() => import('./components/admin/CraftManagement')));
+const AdminProducts = lazy(() => lazyWithRetry(() => import('./components/admin/ProductModeration')));
+const AdminSellers = lazy(() => lazyWithRetry(() => import('./components/admin/SellerManagement')));
+const AdminUsers = lazy(() => lazyWithRetry(() => import('./components/admin/UserManagement')));
+const AdminOrders = lazy(() => lazyWithRetry(() => import('./components/admin/OrderManagement')));
+
+// Seller components
+const SellerProducts = lazy(() => lazyWithRetry(() => import('./components/seller/ProductManagement')));
+const SellerSales = lazy(() => lazyWithRetry(() => import('./components/seller/SalesAnalytics')));
+const SellerProfile = lazy(() => lazyWithRetry(() => import('./components/seller/SellerProfile')));
+
 function App() {
   return (
     <LoadingProvider>
@@ -27,8 +41,15 @@ function App() {
         <Router>
           <AuthProvider>
             <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Protected routes with layout */}
               <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<Navigate to="/dashboard" replace />} />
+                
+                {/* Common Dashboard */}
                 <Route path="dashboard" element={
                   <ProtectedRoute>
                     <div className="app">
@@ -40,6 +61,8 @@ function App() {
                     </div>
                   </ProtectedRoute>
                 } />
+                
+                {/* User Routes - Shopping & Browsing */}
                 <Route path="crafts" element={
                   <ProtectedRoute>
                     <Suspense fallback={<PageLoader />}>
@@ -66,6 +89,50 @@ function App() {
                     </Suspense>
                   </ProtectedRoute>
                 } />
+                <Route path="chatbot" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <Chatbot />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                
+                {/* Admin Routes - Platform Management */}
+                <Route path="admin/crafts" element={
+                  <AdminRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminCrafts />
+                    </Suspense>
+                  </AdminRoute>
+                } />
+                <Route path="admin/products" element={
+                  <AdminRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminProducts />
+                    </Suspense>
+                  </AdminRoute>
+                } />
+                <Route path="admin/sellers" element={
+                  <AdminRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminSellers />
+                    </Suspense>
+                  </AdminRoute>
+                } />
+                <Route path="admin/users" element={
+                  <AdminRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminUsers />
+                    </Suspense>
+                  </AdminRoute>
+                } />
+                <Route path="admin/orders" element={
+                  <AdminRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminOrders />
+                    </Suspense>
+                  </AdminRoute>
+                } />
                 <Route path="analytics" element={
                   <AdminRoute>
                     <Suspense fallback={<PageLoader />}>
@@ -73,12 +140,28 @@ function App() {
                     </Suspense>
                   </AdminRoute>
                 } />
-                <Route path="chatbot" element={
-                  <ProtectedRoute>
+                
+                {/* Seller Routes - Product & Sales Management */}
+                <Route path="seller/products" element={
+                  <SellerRoute>
                     <Suspense fallback={<PageLoader />}>
-                      <Chatbot />
+                      <SellerProducts />
                     </Suspense>
-                  </ProtectedRoute>
+                  </SellerRoute>
+                } />
+                <Route path="seller/sales" element={
+                  <SellerRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <SellerSales />
+                    </Suspense>
+                  </SellerRoute>
+                } />
+                <Route path="seller/profile" element={
+                  <SellerRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <SellerProfile />
+                    </Suspense>
+                  </SellerRoute>
                 } />
               </Route>
             </Routes>

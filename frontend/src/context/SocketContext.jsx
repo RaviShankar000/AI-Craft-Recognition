@@ -54,15 +54,16 @@ export const SocketProvider = ({ children }) => {
       setIsConnected(false);
       setConnectionError(error.message);
 
-      // If authentication failed, clear token and reload
+      // Don't automatically clear token on socket auth failure
+      // The REST API authentication is separate from socket authentication
       if (
         error.message === 'Authentication token required' ||
         error.message === 'Authentication token expired' ||
         error.message === 'Invalid authentication token'
       ) {
-        console.log('[SOCKET] Auth failed, clearing token');
-        localStorage.removeItem('token');
-        // Optionally redirect to login
+        console.warn('[SOCKET] Socket auth failed - socket features will be unavailable');
+        // Don't clear localStorage or redirect
+        // localStorage.removeItem('token');
         // window.location.href = '/login';
       }
     });

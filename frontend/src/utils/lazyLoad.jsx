@@ -94,15 +94,6 @@ export const LazyAdminAnalytics = lazyLoad(() =>
   lazyWithRetry(() => import('../components/AdminAnalytics'))
 );
 
-export const LazyAdminDashboard = lazyLoad(() =>
-  lazyWithRetry(() => import('../components/AdminDashboard'))
-);
-
-// Seller components (only loaded for sellers)
-export const LazySellerDashboard = lazyLoad(() =>
-  lazyWithRetry(() => import('../components/SellerDashboard'))
-);
-
 // Heavy components with code splitting
 export const LazyChatbot = lazyLoad(() =>
   lazyWithRetry(() => import('../components/Chatbot'))
@@ -136,22 +127,6 @@ export const LazyOrderHistory = lazyLoad(() =>
  * Route components with lazy loading
  */
 export const routes = {
-  // Public routes
-  home: lazyLoad(() => import('../pages/Home')),
-  login: lazyLoad(() => import('../pages/Login')),
-  register: lazyLoad(() => import('../pages/Register')),
-  
-  // Protected routes
-  dashboard: lazyLoad(() => import('../pages/Dashboard')),
-  profile: lazyLoad(() => import('../pages/Profile')),
-  
-  // Admin routes (heavy components)
-  adminPanel: LazyAdminDashboard,
-  analytics: LazyAdminAnalytics,
-  
-  // Seller routes
-  sellerDashboard: LazySellerDashboard,
-  
   // Feature routes
   marketplace: LazyMarketplace,
   crafts: LazyCraftUpload,
@@ -204,15 +179,11 @@ export const prefetchByRole = (role) => {
   const prefetchMap = {
     admin: [
       () => import('../components/AdminAnalytics'),
-      () => import('../components/AdminDashboard'),
-    ],
-    seller: [
-      () => import('../components/SellerDashboard'),
-      () => import('../components/CraftUpload'),
     ],
     user: [
       () => import('../components/Marketplace'),
       () => import('../components/Cart'),
+      () => import('../components/CraftUpload'),
     ],
   };
 

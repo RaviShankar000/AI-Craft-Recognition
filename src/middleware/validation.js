@@ -39,8 +39,7 @@ const validateRegister = [
     .notEmpty()
     .withMessage('Email is required')
     .isEmail()
-    .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .withMessage('Please provide a valid email address'),
 
   body('password')
     .notEmpty()
@@ -72,8 +71,7 @@ const validateLogin = [
     .notEmpty()
     .withMessage('Email is required')
     .isEmail()
-    .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .withMessage('Please provide a valid email address'),
 
   body('password').notEmpty().withMessage('Password is required'),
 
@@ -96,8 +94,7 @@ const validateUserUpdate = [
     .optional()
     .trim()
     .isEmail()
-    .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .withMessage('Please provide a valid email address'),
 
   body('phone')
     .optional()
@@ -239,8 +236,7 @@ const validateEmail = [
     .notEmpty()
     .withMessage('Email is required')
     .isEmail()
-    .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .withMessage('Please provide a valid email address'),
 
   handleValidationErrors,
 ];

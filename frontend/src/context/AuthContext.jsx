@@ -27,6 +27,15 @@ export const AuthProvider = ({ children }) => {
 
   // Login function
   const login = useCallback((userData, authToken) => {
+    // Validate input before storing
+    if (!userData || !authToken || !userData.email) {
+      console.error('[AUTH] Invalid login data provided');
+      toast.error('Login failed: Invalid user data');
+      return;
+    }
+    
+    console.log('[AUTH] Login data received:', { userData, authToken: authToken.substring(0, 20) + '...' });
+    
     setUser(userData);
     setToken(authToken);
     setIsAuthenticated(true);
@@ -40,17 +49,29 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
+    // Check if values are valid (not null, not "undefined" string, not empty)
+    if (storedToken && storedUser && storedToken !== 'undefined' && storedUser !== 'undefined') {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-        console.log('[AUTH] Restored authentication from localStorage');
+        // Validate that parsedUser has required properties
+        if (parsedUser && parsedUser.email && parsedUser.name) {
+          setToken(storedToken);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+          console.log('[AUTH] Restored authentication from localStorage');
+        } else {
+          console.warn('[AUTH] Invalid user data in localStorage, clearing...');
+          logout();
+        }
       } catch (error) {
         console.error('[AUTH] Failed to parse stored user:', error);
         logout();
       }
+    } else if (storedToken || storedUser) {
+      // Clear corrupted data
+      console.warn('[AUTH] Corrupted auth data detected, clearing localStorage...');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
     setLoading(false);
   }, [logout]);
@@ -79,7 +100,12 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is admin
   const isAdmin = useCallback(() => {
-    return user?.role === 'admin';
+    return user?.role === 'admin' || user?.role === 'super_admin';
+  }, [user]);
+
+  // Check if user is super admin
+  const isSuperAdmin = useCallback(() => {
+    return user?.role === 'super_admin';
   }, [user]);
 
   // Check if user is seller
@@ -113,6 +139,7 @@ export const AuthProvider = ({ children }) => {
     hasRole,
     hasAnyRole,
     isAdmin,
+    isSuperAdmin,
     isSeller,
     isUser,
 

@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
+import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { logout, user } = useAuth();
 
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
   };
 
   const handleLogout = () => {
-    // TODO: Implement logout logic
     console.log('Logout clicked');
+    logout();
   };
 
   return (
@@ -100,6 +102,13 @@ const Navbar = ({ toggleSidebar }) => {
 
           {dropdownOpen && (
             <div className="dropdown-menu">
+              <div className="dropdown-header">
+                <div className="dropdown-user-info">
+                  <div className="dropdown-user-name">{user?.name || 'User'}</div>
+                  <div className="dropdown-user-role">{user?.role || 'user'}</div>
+                </div>
+              </div>
+              <hr className="dropdown-divider" />
               <a href="#profile" className="dropdown-item">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
