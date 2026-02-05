@@ -17,7 +17,7 @@ The **AI Craft Recognition Platform** is a comprehensive full-stack web applicat
 
 - 🔍 **AI Recognition** - Upload images to identify traditional crafts using machine learning
 - 🛍️ **Marketplace** - Buy and sell authentic handcrafted products
-- 👥 **User Management** - Role-based access control (user, moderator, admin)
+- 👥 **4-Tier Role System** - User, Seller, Admin, and Super Admin roles
 - 📊 **Analytics** - Track platform usage and business metrics
 - 🔐 **Secure** - JWT authentication, rate limiting, and comprehensive security measures
 - 📱 **Responsive** - Mobile-first design with excellent accessibility scores
@@ -26,24 +26,51 @@ The **AI Craft Recognition Platform** is a comprehensive full-stack web applicat
 
 ## 🚀 Features
 
-### For Users
+### For Users 👤
 - **Craft Recognition** - AI-powered identification of crafts from photos
 - **Browse Crafts** - Extensive database of traditional crafts with filtering
 - **Shop Products** - Purchase authentic handcrafted items
 - **Track Orders** - Real-time order status updates
 - **Personal Dashboard** - View history, saved items, and statistics
+- **AI Assistant** - Get help with craft information
 
-### For Artisans
-- **List Products** - Showcase crafts with photos and descriptions
-- **Manage Inventory** - Track stock and update product details
-- **Order Management** - Process and fulfill customer orders
-- **Sales Analytics** - Monitor product performance
+### For Sellers 🏪
+- **Product Management** - Create and manage product listings with approval workflow
+- **Sales Analytics** - Track revenue, orders, and performance metrics (₹45,678 revenue, 89 orders)
+- **Business Profile** - Update business information and settings
+- **Inventory Tracking** - Monitor stock levels (24 products, 18 approved, 4 pending)
+- **Order Fulfillment** - Process and ship customer orders
+- **Rating & Reviews** - View customer feedback (4.8★ rating)
 
-### For Administrators
-- **User Management** - Manage users, roles, and permissions
-- **Content Moderation** - Approve/reject product listings
+### For Admins 🛡️
+- **Craft Management** - Manage craft master database (156 crafts, 24 categories)
+- **Product Moderation** - Review and approve seller products (23 pending reviews)
+- **Seller Management** - Approve seller registrations (89 active sellers, 456 products)
+- **User Management** - View all platform users (1,234 total users, 342 active today)
+- **Order Management** - Monitor all transactions (2,456 orders, ₹1.2M revenue)
 - **Platform Analytics** - Comprehensive usage statistics
 - **System Monitoring** - Health checks and audit logging
+
+### For Super Admins 👑
+- All admin capabilities plus:
+- **Full System Access** - Complete control over all platform features
+- **Role Management** - Promote/demote users to any role
+- **Critical Operations** - Platform-wide configuration and settings
+
+---
+
+## 🧪 Demo Accounts
+
+Try the platform with pre-configured demo accounts:
+
+| Role | Email | Password | Dashboard |
+|------|-------|----------|-----------|
+| **User** 👤 | user@demo.com | user123 | 6 menu items (Dashboard, Crafts, Marketplace, Cart, Orders, AI Assistant) |
+| **Seller** 🏪 | seller@demo.com | seller123 | 4 menu items (Dashboard, Products, Sales, Profile) |
+| **Admin** 🛡️ | admin@demo.com | admin123 | 7 menu items (Dashboard, Crafts, Products, Sellers, Users, Orders, Analytics) |
+| **Super Admin** 👑 | superadmin@demo.com | super123 | All admin features + full system access |
+
+*Use the quick login buttons on the login page for instant access.*
 
 ---
 
@@ -195,6 +222,23 @@ npm run dev
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:5000
 - API Health: http://localhost:5000/health
+
+### 5. Test with Demo Accounts
+
+Login at http://localhost:5173/login and use the quick login buttons:
+
+- **Purple button** - User account (Browse and shop)
+- **Pink button** - Seller account (Manage products)
+- **Blue button** - Admin account (Moderate platform)
+- **Yellow button** - Super Admin (Full access)
+
+Or manually login:
+- User: user@demo.com / user123
+- Seller: seller@demo.com / seller123
+- Admin: admin@demo.com / admin123
+- Super Admin: superadmin@demo.com / super123
+
+*Demo accounts are automatically seeded on first run.*
 
 ---
 
